@@ -1,8 +1,11 @@
 MESSAGES:
   ERRORS:
     START: Error starting the application
+    MODEL: Error loading the model
 
 DATA_FILE: data/heloc_dataset_v1.csv
+
+MODEL_FILE: models/MainModel.pkl
 
 INPUT_VALUES:
   ExternalRiskEstimate:

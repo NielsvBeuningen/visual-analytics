@@ -8,12 +8,30 @@ import pandas as pd
 import numpy as np
 
 from lib.Visualizer import Visualizer
+from lib.Classifier import Classifier
+from lib.Dataloader import Dataloader
 
 # Try to load the configuration file, if it fails, stop the app
 try:
     if "config" not in st.session_state:
         with open('config.yaml') as config_file:
             st.session_state.config = yaml.load(config_file, Loader=SafeLoader)
+            
+    if "customer_data" not in st.session_state:
+        st.session_state.customer_data = {}
+        # Use default values for the customer data
+        for feature in st.session_state.config["INPUT_VALUES"]:
+            st.session_state.customer_data[feature] = st.session_state.config["INPUT_VALUES"][feature]["DEFAULT"]
+        
+    if "dataloader" not in st.session_state:
+        st.session_state.dataloader = Dataloader(data_path = st.session_state.config["DATA_FILE"])
+            
+    if "classifier" not in st.session_state:
+        st.session_state.classifier = Classifier(file_path = st.session_state.config["MODEL_FILE"])
+        
+    if "visualizer" not in st.session_state:
+        st.session_state.visualizer = Visualizer(original_data=st.session_state.dataloader.original_features, original_labels=st.session_state.dataloader.labels)
+
             
 except Exception as e:
     st.write(e)
@@ -27,7 +45,7 @@ st.sidebar.title("Customer Information")
 
 # CUSTOMER NAME NEEDED?
 # customer_name = st.sidebar.text_input("Customer Name", "John Doe")
-customer_age = st.sidebar.number_input("Customer Age", 18, 100, 25)
+# customer_age = st.sidebar.number_input("Customer Age", 18, 100, 25)
 
 def update_slider() -> None:
     """
@@ -35,19 +53,35 @@ def update_slider() -> None:
     @param: None
     @return: None
     """
-    for feature in st.session_state.config["INPUT_VALUES"]:
-        st.session_state[f'slider_{feature}'] = st.session_state[f'numeric_{feature}']
+    feature = st.session_state["feature_select"]
+    st.session_state[f'slider_{feature}'] = st.session_state[f'numeric_{feature}']
+    st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
+        
 def update_numin() -> None:
     """
     Update the numeric input value when the slider is changed
     @param: None
     @return: None
     """
-    for feature in st.session_state.config["INPUT_VALUES"]:
-        st.session_state[f'numeric_{feature}'] = st.session_state[f'slider_{feature}']
+    feature = st.session_state["feature_select"]
+    st.session_state[f'numeric_{feature}'] = st.session_state[f'slider_{feature}']
+    st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
+
+# Generate the sliders and numeric inputs for the features based on a selectbox
+st.sidebar.write("Select a feature to update the value")
+exp = st.sidebar.expander("Feature updates", expanded=True)
+with exp:
+    feature = st.selectbox("Feature", list(st.session_state.config["INPUT_VALUES"].keys()), key="feature_select")
+    val = st.number_input('Numeric', value = st.session_state.customer_data[feature], key = f'numeric_{feature}', on_change = update_slider)
+    slider_value = st.slider('Slider', min_value = st.session_state.config["INPUT_VALUES"][feature]["MIN"], 
+                            value = val, 
+                            max_value = st.session_state.config["INPUT_VALUES"][feature]["MAX"],
+                            step = 1,
+                            key = f'slider_{feature}', on_change= update_numin)
+
     
 # Loop over all features in the configuration file to generate sliders and numeric inputs
-for i, (name, item) in enumerate(st.session_state.config["INPUT_VALUES"].items()):
+# for i, (name, item) in enumerate(st.session_state.config["INPUT_VALUES"].items()):
     
     # CAN BE USED TO CREATE EXPANDERS IN TWO COLUMNS IF NEEDED
     # if i % 2 == 0:
@@ -59,37 +93,43 @@ for i, (name, item) in enumerate(st.session_state.config["INPUT_VALUES"].items()
     # NOW JUST DOING IN IN SIDEBAR
     
     # Generate expander with numeric input and slider for each feature
-    exp = st.sidebar.expander(name, expanded=True)
-    with exp:
-        val = st.number_input('Numeric', value = st.session_state.config["INPUT_VALUES"][name]["DEFAULT"], key = f'numeric_{name}', on_change = update_slider)
-        slider_value = st.slider('Slider', min_value = st.session_state.config["INPUT_VALUES"][name]["MIN"], 
-                                value = val, 
-                                max_value = st.session_state.config["INPUT_VALUES"][name]["MAX"],
-                                step = 1,
-                                key = f'slider_{name}', on_change= update_numin)
+    # exp = st.sidebar.expander(name, expanded=True)
+    # with exp:
+    #     val = st.number_input('Numeric', value = st.session_state.config["INPUT_VALUES"][name]["DEFAULT"], key = f'numeric_{name}', on_change = update_slider)
+    #     slider_value = st.slider('Slider', min_value = st.session_state.config["INPUT_VALUES"][name]["MIN"], 
+    #                             value = val, 
+    #                             max_value = st.session_state.config["INPUT_VALUES"][name]["MAX"],
+    #                             step = 1,
+    #                             key = f'slider_{name}', on_change= update_numin)
  
 # LOAD THE DATA HERE FOR NOW AND THEN PASS TO VISUALIZER
 # Load the data
-features = pd.read_csv(st.session_state.config["DATA_FILE"])
-feature_names = features.columns
 
-# Determine the label dimension
-labelDimension = "RiskPerformance"
-feature_names = feature_names.drop(labelDimension)
-labels = np.array(features[labelDimension])
-
-# Remove the labels from the features
-original_features= features.drop(labelDimension, axis = 1)
  
-customer_row = pd.DataFrame(columns = original_features.columns)
-for feature in original_features.columns:
-    customer_row[feature] = [st.session_state[f'numeric_{feature}']]
-     
+# Show the customer data as a dataframe
+customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
+customer_features = customer_row.to_numpy()
+st.dataframe(customer_row, hide_index=True) 
+
+
+
+if st.button("Predict"):
+    with st.spinner("Predicting label"):
+        prediction = st.session_state.classifier.predict(customer_features)
+
+        if prediction[0] == "Good":
+            st.success("Loan accepted :)")
+            st.info(f"Probability: {prediction[1][1]}")
+        else:
+            st.error("Load denied :(")
+            st.info(f"Probability: {prediction[1][0]}")
+        
+
+    
 # Create a visualizer object with the data file   
-visualizer = Visualizer(original_data=original_features, original_labels=labels, customer_row = customer_row)
 
 # Create an expander for the dimensionality reduction section
-with st.expander("Dimensionality Reduction", expanded=True):
+with st.expander("Landscape", expanded=True):
     st.write("Use the dropdown to select the method for dimensionality reduction")
     
     # Create a selectbox to choose the method for dimensionality reduction
@@ -120,4 +160,4 @@ with st.expander("Dimensionality Reduction", expanded=True):
 # React to the button press and perform the dimensionality reduction
 if start_btn.button("Apply"):    
     with st.spinner(f"Performing dimensionality reduction with {method}"):
-        visualizer.dim_reduction(method=method, params=params)
+        st.session_state.visualizer.dim_reduction(method=method, params=params, customer_row=customer_row)
