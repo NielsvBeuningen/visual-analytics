@@ -1,7 +1,7 @@
 MESSAGES:
   ERRORS:
     START: Error starting the application
-    MODEL: Error loading the model
+    MODEL: Error loading the model, have you stored it locally?
 
 DATA_FILE: data/heloc_dataset_v1.csv
 
