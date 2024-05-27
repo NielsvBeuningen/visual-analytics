@@ -24,13 +24,21 @@ try:
             st.session_state.customer_data[feature] = st.session_state.config["INPUT_VALUES"][feature]["DEFAULT"]
         
     if "dataloader" not in st.session_state:
-        st.session_state.dataloader = Dataloader(data_path = st.session_state.config["DATA_FILE"])
+        st.session_state.dataloader = Dataloader(
+            data_path = st.session_state.config["DATA_FILE"]
+            )
             
     if "classifier" not in st.session_state:
-        st.session_state.classifier = Classifier(file_path = st.session_state.config["MODEL_FILE"])
+        st.session_state.classifier = Classifier(
+            file_path = st.session_state.config["MODEL_FILE"], 
+            data=st.session_state.dataloader.original_features
+            )
         
     if "visualizer" not in st.session_state:
-        st.session_state.visualizer = Visualizer(original_data=st.session_state.dataloader.original_features, original_labels=st.session_state.dataloader.labels)
+        st.session_state.visualizer = Visualizer(
+            original_data = st.session_state.dataloader.original_features.drop("RiskPerformance", axis = 1), 
+            original_labels = st.session_state.dataloader.labels
+            )
 
             
 except Exception as e:
@@ -124,7 +132,10 @@ if st.button("Predict"):
             st.error("Load denied :(")
             st.info(f"Probability: {prediction[1][0]}")
         
-
+if st.button("Generate Counterfactuals"):
+    with st.spinner("Generating counterfactuals"):
+        feature_names = ["ExternalRiskEstimate"]
+        st.session_state.classifier.generate_counterfactuals(feature_names=feature_names, customer_data=customer_row)
     
 # Create a visualizer object with the data file   
 

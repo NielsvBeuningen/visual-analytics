@@ -13,6 +13,6 @@ class Dataloader:
         self.labels = np.array(features[labelDimension])
 
         # Remove the labels from the features
-        self.original_features= features.drop(labelDimension, axis = 1)
+        self.original_features = features
         pass
         

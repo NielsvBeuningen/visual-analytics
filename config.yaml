@@ -19,130 +19,130 @@ INPUT_VALUES:
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NumSatisfactoryTrades:
     NAME: NumSatisfactoryTrades
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NumTrades60Ever/DerogPubRec:
     NAME: NumTrades60Ever/DerogPubRec
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NumTrades90Ever/DerogPubRec:
     NAME: NumTrades90Ever/DerogPubRec
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   PercentTradesNeverDelq:
     NAME: PercentTradesNeverDelq
     TYPE: INTEGER
     MIN: 0
     MAX: 100
-    DEFAULT: 100
+    DEFAULT: 90
   MSinceMostRecentDelq:
     NAME: MSinceMostRecentDelq
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   MaxDelq/PublicRecLast12M:
     NAME: MaxDelq/PublicRecLast12M
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 10000
+    DEFAULT: 1000
   MaxDelqEver:
     NAME: MaxDelqEver
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NumTotalTrades:
     NAME: NumTotalTrades
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NumTradesOpeninLast12M:
     NAME: NumTradesOpeninLast12M
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   PercentInstallTrades:
     NAME: PercentInstallTrades
     TYPE: INTEGER
     MIN: 0
     MAX: 100
-    DEFAULT: 100
+    DEFAULT: 10
   MSinceMostRecentInqexcl7days:
     NAME: MSinceMostRecentInqexcl7days
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NumInqLast6M:
     NAME: NumInqLast6M
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NumInqLast6Mexcl7days:
     NAME: NumInqLast6Mexcl7days
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NetFractionRevolvingBurden:
     NAME: NetFractionRevolvingBurden
     TYPE: INTEGER
     MIN: 0
     MAX: 100
-    DEFAULT: 100
+    DEFAULT: 10
   NetFractionInstallBurden:
     NAME: NetFractionInstallBurden
     TYPE: INTEGER
     MIN: 0
     MAX: 100
-    DEFAULT: 100
+    DEFAULT: 10
   NumRevolvingTradesWBalance:
     NAME: NumRevolvingTradesWBalance
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NumInstallTradesWBalance:
     NAME: NumInstallTradesWBalance
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   NumBank/NatlTradesWHighUtilization:
     NAME: NumBank/NatlTradesWHighUtilization
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   PercentTradesWBalance:
     NAME: PercentTradesWBalance
     TYPE: INTEGER
     MIN: 0
     MAX: 100
-    DEFAULT: 100
+    DEFAULT: 10
   MSinceOldestTradeOpen:
     NAME: MSinceOldestTradeOpen
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   MSinceMostRecentTradeOpen:
     NAME: MSinceMostRecentTradeOpen
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
