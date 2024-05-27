@@ -119,8 +119,6 @@ st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, ind
 customer_features = st.session_state.customer_row.to_numpy()
 st.dataframe(st.session_state.customer_row, hide_index=True) 
 
-
-
 if st.button("Predict"):
     with st.spinner("Predicting label"):
         prediction = st.session_state.classifier.predict(customer_features)
