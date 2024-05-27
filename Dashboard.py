@@ -13,6 +13,8 @@ from lib.Dataloader import Dataloader
 
 # Try to load the configuration file, if it fails, stop the app
 try:
+    st.set_page_config(page_title="HELOC Dashboard", layout="wide")
+
     if "config" not in st.session_state:
         with open('config.yaml') as config_file:
             st.session_state.config = yaml.load(config_file, Loader=SafeLoader)
@@ -47,7 +49,6 @@ except Exception as e:
     st.stop()
 
 # Create the page layout
-st.set_page_config(page_title="HELOC Dashboard", layout="wide")
 st.title("HELOC Dashboard")
 st.sidebar.title("Customer Information")
 
@@ -132,11 +133,16 @@ if st.button("Predict"):
         else:
             st.error("Load denied :(")
             st.info(f"Probability: {prediction[1][0]}")
+
+n_cfs = st.slider("Number of Counterfactuals", 1, 5, 1)
         
 if st.button("Generate Counterfactuals"):
     with st.spinner("Generating counterfactuals"):
         feature_names = ["ExternalRiskEstimate"]
-        st.session_state.classifier.generate_counterfactuals(feature_names=feature_names, customer_data=st.session_state.customer_row)
+        st.session_state.classifier.generate_counterfactuals(
+            feature_names=feature_names, 
+            customer_data=st.session_state.customer_row,
+            n_cfs=n_cfs)
     
 # Create a visualizer object with the data file   
 

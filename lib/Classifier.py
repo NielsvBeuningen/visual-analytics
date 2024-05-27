@@ -35,21 +35,31 @@ class Classifier:
         
         return prediction, prediction_proba
     
-    def generate_counterfactuals(self, feature_names, customer_data):        
+    def generate_counterfactuals(self, feature_names: list, customer_data: pd.DataFrame, n_cfs=1) -> None:   
+        
+             
         # Initialize DiCE model
         d = dice_ml.Data(dataframe=self.data, continuous_features=feature_names, outcome_name='RiskPerformance')
         m = dice_ml.Model(model=self.model, backend="sklearn", model_type='classifier')
 
-        # Example of new customer datapoint
-        new_customer = customer_data  # Assume we are using the first test instance for this example
-        
-        # Get first row of the data as test instance but keep the index
-        new_customer = self.data.tail(1).drop("RiskPerformance", axis=1)
+        # FOR TESTING
+        # customer_data = self.data.tail(1).drop("RiskPerformance", axis=1)
         
         # Generate counterfactuals
         exp = dice_ml.Dice(d, m)
         
-        counterfactuals = exp.generate_counterfactuals(new_customer, total_CFs=1, desired_class="opposite")
+        try:
+            counterfactuals = exp.generate_counterfactuals(
+                query_instances=customer_data, 
+                total_CFs=n_cfs, 
+                desired_class="opposite"
+                )
+        except Exception as e:
+            st.error(st.session_state.config["MESSAGES"]["ERRORS"]["CF"])
+            st.write(e)
+            return None
+
+        st.write("Counterfactuals")
 
         # Display the counterfactual result
-        st.write(counterfactuals.visualize_as_dataframe())
+        st.dataframe(counterfactuals.cf_examples_list[0].final_cfs_df)
