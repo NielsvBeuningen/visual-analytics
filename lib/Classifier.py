@@ -35,17 +35,21 @@ class Classifier:
         
         return prediction, prediction_proba
     
-    def generate_counterfactuals(self, feature_names, customer_data):
+    def generate_counterfactuals(self, feature_names, customer_data):        
         # Initialize DiCE model
         d = dice_ml.Data(dataframe=self.data, continuous_features=feature_names, outcome_name='RiskPerformance')
         m = dice_ml.Model(model=self.model, backend="sklearn", model_type='classifier')
 
         # Example of new customer datapoint
         new_customer = customer_data  # Assume we are using the first test instance for this example
-
+        st.dataframe(new_customer)
+        # Get first row of the data as test instance
+        new_customer = self.data.iloc[0].to_dict()
+        st.dataframe(new_customer)
+        
         # Generate counterfactuals
         exp = dice_ml.Dice(d, m)
-        counterfactuals = exp.generate_counterfactuals(new_customer, total_CFs=1, desired_class="Good")
+        counterfactuals = exp.generate_counterfactuals(new_customer, total_CFs=4, desired_class="opposite")
 
         # Display the counterfactual result
         st.dataframe(counterfactuals)

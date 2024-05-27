@@ -115,9 +115,9 @@ with exp:
 
  
 # Show the customer data as a dataframe
-customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
-customer_features = customer_row.to_numpy()
-st.dataframe(customer_row, hide_index=True) 
+st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
+customer_features = st.session_state.customer_row.to_numpy()
+st.dataframe(st.session_state.customer_row, hide_index=True) 
 
 
 
@@ -128,6 +128,9 @@ if st.button("Predict"):
         if prediction[0] == "Good":
             st.success("Loan accepted :)")
             st.info(f"Probability: {prediction[1][1]}")
+            
+            # Add "RiskPerformance" to customer row
+            st.session_state.customer_row["RiskPerformance"] = "Good"
         else:
             st.error("Load denied :(")
             st.info(f"Probability: {prediction[1][0]}")
@@ -135,7 +138,7 @@ if st.button("Predict"):
 if st.button("Generate Counterfactuals"):
     with st.spinner("Generating counterfactuals"):
         feature_names = ["ExternalRiskEstimate"]
-        st.session_state.classifier.generate_counterfactuals(feature_names=feature_names, customer_data=customer_row)
+        st.session_state.classifier.generate_counterfactuals(feature_names=feature_names, customer_data=st.session_state.customer_row)
     
 # Create a visualizer object with the data file   
 
