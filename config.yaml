@@ -4,6 +4,8 @@ MESSAGES:
     MODEL: Error loading the model, have you stored it locally?
     CF: Not able to find counterfactuals
 
+SHOW_LOGS: True
+
 DATA_FILE: data/heloc_dataset_v1.csv
 
 MODEL_FILE: models/MainModel.pkl
@@ -20,7 +22,7 @@ INPUT_VALUES:
     TYPE: INTEGER
     MIN: 0
     MAX: 500
-    DEFAULT: 100
+    DEFAULT: 30
   NumSatisfactoryTrades:
     NAME: NumSatisfactoryTrades
     TYPE: INTEGER
@@ -140,7 +142,7 @@ INPUT_VALUES:
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 200
+    DEFAULT: 30
   MSinceMostRecentTradeOpen:
     NAME: MSinceMostRecentTradeOpen
     TYPE: INTEGER

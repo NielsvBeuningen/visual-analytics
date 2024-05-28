@@ -5,11 +5,17 @@ import yaml
 from yaml.loader import SafeLoader
 
 import pandas as pd
-import numpy as np
 
 from lib.Visualizer import Visualizer
 from lib.Classifier import Classifier
 from lib.Dataloader import Dataloader
+
+# Warnings disabling
+def warn(*args, **kwargs):
+    pass
+import warnings
+warnings.warn = warn
+
 
 # Try to load the configuration file, if it fails, stop the app
 try:
@@ -24,6 +30,15 @@ try:
         # Use default values for the customer data
         for feature in st.session_state.config["INPUT_VALUES"]:
             st.session_state.customer_data[feature] = st.session_state.config["INPUT_VALUES"][feature]["DEFAULT"]
+     
+    if "customer_prediction" not in st.session_state:
+        st.session_state.customer_prediction = None
+       
+    if "counterfactuals" not in st.session_state:
+        st.session_state.counterfactuals = None
+        
+    if "output_customer_row" not in st.session_state:
+        st.session_state.output_customer_row = None
         
     if "dataloader" not in st.session_state:
         st.session_state.dataloader = Dataloader(
@@ -65,6 +80,8 @@ def update_slider() -> None:
     feature = st.session_state["feature_select"]
     st.session_state[f'slider_{feature}'] = st.session_state[f'numeric_{feature}']
     st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
+    st.session_state.customer_prediction = None
+    st.session_state.output_customer_row = None
         
 def update_numin() -> None:
     """
@@ -75,6 +92,36 @@ def update_numin() -> None:
     feature = st.session_state["feature_select"]
     st.session_state[f'numeric_{feature}'] = st.session_state[f'slider_{feature}']
     st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
+    st.session_state.customer_prediction = None
+    st.session_state.output_customer_row = None
+    
+def update_features_vary() -> None:
+    """
+    Update the features to vary when the select all checkbox is changed
+    @param: None
+    @return: None
+    """
+    if st.session_state.select_all:
+        st.session_state.features_vary = list(st.session_state.customer_row.columns)
+    else:
+        st.session_state.features_vary = []
+    
+def update_select_all() -> None:
+    """
+    Update the select all checkbox when the features to vary are changed
+    @param: None
+    @return: None
+    """
+    if len(st.session_state.features_vary) == len(st.session_state.customer_row.columns):
+        st.session_state.select_all = True
+    else:
+        st.session_state.select_all = False
+
+@st.cache_data
+def convert_df(df):
+    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+    return df.to_csv().encode("utf-8")
+
 
 # Generate the sliders and numeric inputs for the features based on a selectbox
 st.sidebar.write("Select a feature to update the value")
@@ -88,66 +135,111 @@ with exp:
                             step = 1,
                             key = f'slider_{feature}', on_change= update_numin)
 
+if st.session_state.output_customer_row is not None:
+    data_exp = st.sidebar.expander("Export Data", expanded=True)
+    if st.session_state.counterfactuals is None:
+        options = ["Customer Data"]
+    else:
+        options = ["Customer Data", "Counterfactuals"]
+    selected_data = data_exp.multiselect(
+        label = "Select data to export", 
+        options = options, 
+        default = options
+        )
     
-# Loop over all features in the configuration file to generate sliders and numeric inputs
-# for i, (name, item) in enumerate(st.session_state.config["INPUT_VALUES"].items()):
+    filename = data_exp.text_input(
+            label="File Name", value="important_data.csv"
+            )
     
-    # CAN BE USED TO CREATE EXPANDERS IN TWO COLUMNS IF NEEDED
-    # if i % 2 == 0:
-    #     col1, col2 = st.columns(2)
-    #     exp = col1.expander(name, expanded=True)
-    # else:
-    #     exp = col2.expander(name, expanded=True)
-    
-    # NOW JUST DOING IN IN SIDEBAR
-    
-    # Generate expander with numeric input and slider for each feature
-    # exp = st.sidebar.expander(name, expanded=True)
-    # with exp:
-    #     val = st.number_input('Numeric', value = st.session_state.config["INPUT_VALUES"][name]["DEFAULT"], key = f'numeric_{name}', on_change = update_slider)
-    #     slider_value = st.slider('Slider', min_value = st.session_state.config["INPUT_VALUES"][name]["MIN"], 
-    #                             value = val, 
-    #                             max_value = st.session_state.config["INPUT_VALUES"][name]["MAX"],
-    #                             step = 1,
-    #                             key = f'slider_{name}', on_change= update_numin)
- 
-# LOAD THE DATA HERE FOR NOW AND THEN PASS TO VISUALIZER
-# Load the data
-
+    # Loop over the selected data to create export df
+    export_df = pd.DataFrame()
+    for data in selected_data:
+        if data == "Customer Data":
+            row = st.session_state.output_customer_row
+            row.index = ["customer"]
+            export_df = export_df._append(row)
+        elif data == "Counterfactuals":
+            export_df = export_df._append(st.session_state.counterfactuals)
+            
+    csv = convert_df(export_df)
+            
+    data_exp.download_button(
+        label = "Download Data",
+        data = csv,
+        file_name = filename,
+        mime="text/csv"
+    )
+        
+st.header("Customer Information")
  
 # Show the customer data as a dataframe
 st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
 customer_features = st.session_state.customer_row.to_numpy()
 st.dataframe(st.session_state.customer_row, hide_index=True) 
 
-if st.button("Predict"):
-    with st.spinner("Predicting label"):
-        prediction = st.session_state.classifier.predict(customer_features)
+tab1, tab2 = st.tabs(["Prediction", "Landscape"])
 
-        if prediction[0] == "Good":
-            st.success("Loan accepted :)")
-            st.info(f"Probability: {prediction[1][1]}")
+with tab1:
+    if st.button("Predict"):
+        with st.spinner("Predicting label"):
+            st.session_state.customer_prediction = st.session_state.classifier.predict(customer_features)
+            st.session_state.output_customer_row = st.session_state.customer_row.copy()
+            st.rerun()
             
-            # Add "RiskPerformance" to customer row
-            st.session_state.customer_row["RiskPerformance"] = "Good"
-        else:
-            st.error("Load denied :(")
-            st.info(f"Probability: {prediction[1][0]}")
+    if st.session_state.customer_prediction is None:
+        st.warning("The current customer data has not been assessed yet. Please click the 'Predict' button to get a prediction.")
+        st.stop()
 
-n_cfs = st.slider("Number of Counterfactuals", 1, 5, 1)
+    if st.session_state.customer_prediction["Prediction"] == "Good":
+        st.session_state.output_customer_row["RiskPerformance"] = "Good"
+        st.success("Loan accepted :smile:")
+        st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][1], 2)}")
+    else:
+        st.session_state.output_customer_row["RiskPerformance"] = "Bad"
+        st.error("Load denied :pensive:")
+        st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
         
-if st.button("Generate Counterfactuals"):
-    with st.spinner("Generating counterfactuals"):
-        feature_names = ["ExternalRiskEstimate"]
-        st.session_state.classifier.generate_counterfactuals(
-            feature_names=feature_names, 
-            customer_data=st.session_state.customer_row,
-            n_cfs=n_cfs)
-    
-# Create a visualizer object with the data file   
+        st.divider()
+        st.subheader("Counterfactuals")
+        st.write("Here you can generate counterfactuals for the customer data to find out what changes would be needed for the loan to be accepted.")
+        
+        cf_exp = st.expander("Counterfactual Settings", expanded=True)
+        
+        with cf_exp:
+            # Just a simple layout for the counterfactual settings
+            col1, _, col2, _ = st.columns([1, 1, 3, 6])
+            dice_method = col1.selectbox("DiCE Method", ["kdtree", "random", "genetic"])
+            n_cfs = col2.slider("Number of Counterfactuals", 1, 10, 1)   
+            select_all = st.checkbox("Select all features", value=True, on_change=update_features_vary, key="select_all")     
+                        
+            features_vary = st.multiselect(
+                label="Features to use for counterfactuals", 
+                options=st.session_state.customer_row.columns,
+                default=list(st.session_state.customer_row.columns),
+                on_change=update_select_all,
+                key="features_vary"
+                )  
+        
+        if st.button("Generate Counterfactuals"):
+            with st.spinner("Generating counterfactuals"):
+                st.session_state.counterfactuals = st.session_state.classifier.generate_counterfactuals(
+                    show_logs=st.session_state.config["SHOW_LOGS"],
+                    method=dice_method,
+                    feature_names=list(st.session_state.customer_row.columns), 
+                    features_vary=features_vary,
+                    customer_data=st.session_state.customer_row,
+                    n_cfs=n_cfs)
+                st.rerun()
+            
+        if st.session_state.counterfactuals is None:
+            st.warning("The counterfactuals have not been generated yet. Please click the 'Generate Counterfactuals' button to generate them.")
+        else:
+            st.write("Configurations that would receive a loan approval:")
 
-# Create an expander for the dimensionality reduction section
-with st.expander("Landscape", expanded=True):
+            # Display the counterfactual result
+            st.dataframe(st.session_state.counterfactuals.drop("RiskPerformance", axis=1))
+        
+with tab2:
     st.write("Use the dropdown to select the method for dimensionality reduction")
     
     # Create a selectbox to choose the method for dimensionality reduction
@@ -175,7 +267,8 @@ with st.expander("Landscape", expanded=True):
     # Create a placeholder for the button to apply the dimensionality reduction (just for ui styling)
     start_btn = st.empty()
     
-# React to the button press and perform the dimensionality reduction
-if start_btn.button("Apply"):    
-    with st.spinner(f"Performing dimensionality reduction with {method}"):
-        st.session_state.visualizer.dim_reduction(method=method, params=params, customer_row=customer_row)
+    # React to the button press and perform the dimensionality reduction
+    if start_btn.button("Apply"):    
+        with st.spinner(f"Performing dimensionality reduction with {method}"):
+            st.session_state.visualizer.dim_reduction(method=method, params=params, customer_row=st.session_state.customer_row)
+

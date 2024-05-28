@@ -33,33 +33,47 @@ class Classifier:
         prediction = self.model.predict(data)[0]
         prediction_proba = self.model.predict_proba(data)[0]
         
-        return prediction, prediction_proba
-    
-    def generate_counterfactuals(self, feature_names: list, customer_data: pd.DataFrame, n_cfs=1) -> None:   
+        result = {
+            "Prediction": prediction,
+            "Prediction Probability": prediction_proba
+        }
         
+        return result
+    
+    def generate_counterfactuals(self, show_logs: bool, method: str, feature_names: list, features_vary: list, customer_data: pd.DataFrame, n_cfs=1) -> pd.DataFrame:   
              
         # Initialize DiCE model
         d = dice_ml.Data(dataframe=self.data, continuous_features=feature_names, outcome_name='RiskPerformance')
         m = dice_ml.Model(model=self.model, backend="sklearn", model_type='classifier')
 
-        # FOR TESTING
-        # customer_data = self.data.tail(1).drop("RiskPerformance", axis=1)
-        
+        permitted_range = {}
+
+        for feature in features_vary:
+            max_value = self.data[feature].max()
+            mean_value = self.data[feature].mean()
+            max = max_value + mean_value
+            permitted_range[feature] = [0, max]
+                
         # Generate counterfactuals
-        exp = dice_ml.Dice(d, m)
+        exp = dice_ml.Dice(d, m, method=method)
         
         try:
             counterfactuals = exp.generate_counterfactuals(
                 query_instances=customer_data, 
                 total_CFs=n_cfs, 
-                desired_class="opposite"
+                desired_class="opposite",
+                features_to_vary=features_vary,
+                permitted_range=permitted_range
                 )
         except Exception as e:
             st.error(st.session_state.config["MESSAGES"]["ERRORS"]["CF"])
-            st.write(e)
+            if show_logs: 
+                st.write(e)
             return None
 
-        st.write("Counterfactuals")
-
-        # Display the counterfactual result
-        st.dataframe(counterfactuals.cf_examples_list[0].final_cfs_df)
+        result = counterfactuals.cf_examples_list[0].final_cfs_df
+        # Add id column with "counterfactual_i" as index
+        result.index = [f"alternative_{i}" for i in range(1, n_cfs+1)]
+        
+        
+        return result

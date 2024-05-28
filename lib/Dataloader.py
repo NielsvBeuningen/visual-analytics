@@ -17,4 +17,3 @@ class Dataloader:
         # Remove the labels from the features
         self.original_features = features
         pass
-        
