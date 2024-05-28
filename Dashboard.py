@@ -118,16 +118,23 @@ def update_select_all() -> None:
         st.session_state.select_all = False
 
 @st.cache_data
-def convert_df(df):
-    # IMPORTANT: Cache the conversion to prevent computation on every rerun
+def convert_df(df: pd.DataFrame) -> bytes:
+    """
+    Small helper function to convert a dataframe to a csv file
+    @param df: the dataframe to convert
+    @return: the csv file as bytes
+    """
     return df.to_csv().encode("utf-8")
 
 
 # Generate the sliders and numeric inputs for the features based on a selectbox
 st.sidebar.write("Select a feature to update the value")
-exp = st.sidebar.expander("Feature updates", expanded=True)
+exp = st.sidebar.expander("Customer Data Updating", expanded=True)
 with exp:
+    # Create a selectbox to choose the feature to update
     feature = st.selectbox("Feature", list(st.session_state.config["INPUT_VALUES"].keys()), key="feature_select")
+    
+    # Create a numeric input and a slider for the selected feature
     val = st.number_input('Numeric', value = st.session_state.customer_data[feature], key = f'numeric_{feature}', on_change = update_slider)
     slider_value = st.slider('Slider', min_value = st.session_state.config["INPUT_VALUES"][feature]["MIN"], 
                             value = val, 
@@ -135,23 +142,29 @@ with exp:
                             step = 1,
                             key = f'slider_{feature}', on_change= update_numin)
 
+# Create an export section to export the data if the customer data has been assessed
 if st.session_state.output_customer_row is not None:
     data_exp = st.sidebar.expander("Export Data", expanded=True)
+    
+    # Check if counterfactuals have been generated, if not, only allow the customer data to be exported
     if st.session_state.counterfactuals is None:
         options = ["Customer Data"]
     else:
         options = ["Customer Data", "Counterfactuals"]
+        
+    # Create a multiselect to select the data to export
     selected_data = data_exp.multiselect(
         label = "Select data to export", 
         options = options, 
         default = options
         )
     
+    # Create a text input to enter the filename
     filename = data_exp.text_input(
             label="File Name", value="important_data.csv"
             )
     
-    # Loop over the selected data to create export df
+    # Loop over the selected data to create export dataframe
     export_df = pd.DataFrame()
     for data in selected_data:
         if data == "Customer Data":
@@ -161,8 +174,10 @@ if st.session_state.output_customer_row is not None:
         elif data == "Counterfactuals":
             export_df = export_df._append(st.session_state.counterfactuals)
             
+    # Convert the dataframe to bytes to be able to download it
     csv = convert_df(export_df)
             
+    # Create a download button to download the data
     data_exp.download_button(
         label = "Download Data",
         data = csv,
@@ -170,6 +185,7 @@ if st.session_state.output_customer_row is not None:
         mime="text/csv"
     )
         
+# Show the customer data
 st.header("Customer Information")
  
 # Show the customer data as a dataframe
@@ -177,19 +193,28 @@ st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, ind
 customer_features = st.session_state.customer_row.to_numpy()
 st.dataframe(st.session_state.customer_row, hide_index=True) 
 
+# Create the tabs for the prediction and the landscape
 tab1, tab2 = st.tabs(["Prediction", "Landscape"])
 
 with tab1:
+    # This tab is used for assessing the customer data and generating counterfactuals if the loan is denied
+    st.subheader("AI Assessment")
+    st.write("Click the button below to predict the loan acceptance for the current customer data.")
+    
+    # Create a button to predict the loan acceptance
     if st.button("Predict"):
         with st.spinner("Predicting label"):
+            # Perform the prediction
             st.session_state.customer_prediction = st.session_state.classifier.predict(customer_features)
             st.session_state.output_customer_row = st.session_state.customer_row.copy()
             st.rerun()
             
+    # Check if the prediction has been performed
     if st.session_state.customer_prediction is None:
         st.warning("The current customer data has not been assessed yet. Please click the 'Predict' button to get a prediction.")
         st.stop()
 
+    # Display the prediction result and the probability, update the export row based on the prediction
     if st.session_state.customer_prediction["Prediction"] == "Good":
         st.session_state.output_customer_row["RiskPerformance"] = "Good"
         st.success("Loan accepted :smile:")
@@ -199,19 +224,25 @@ with tab1:
         st.error("Load denied :pensive:")
         st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
         
+        # If the loan is denied, show configuration for generating counterfactuals
         st.divider()
         st.subheader("Counterfactuals")
         st.write("Here you can generate counterfactuals for the customer data to find out what changes would be needed for the loan to be accepted.")
         
+        # Create an expander for the counterfactual settings
         cf_exp = st.expander("Counterfactual Settings", expanded=True)
         
-        with cf_exp:
-            # Just a simple layout for the counterfactual settings
-            col1, _, col2, _ = st.columns([1, 1, 3, 6])
-            dice_method = col1.selectbox("DiCE Method", ["kdtree", "random", "genetic"])
-            n_cfs = col2.slider("Number of Counterfactuals", 1, 10, 1)   
+        with cf_exp:            
+            # Allow the user to select the method for generating counterfactuals
+            dice_method = st.selectbox("DiCE Method", ["kdtree", "random", "genetic"])
+            
+            # Allow the user to select the number of counterfactuals to generate
+            n_cfs = st.slider("Number of Counterfactuals", 1, st.session_state.config["MAX_CFS"], 1)   
+            
+            # Checkbox for quick (de)selection of all features
             select_all = st.checkbox("Select all features", value=True, on_change=update_features_vary, key="select_all")     
                         
+            # Allow the user to select the features to vary for the counterfactuals generation
             features_vary = st.multiselect(
                 label="Features to use for counterfactuals", 
                 options=st.session_state.customer_row.columns,
@@ -220,8 +251,10 @@ with tab1:
                 key="features_vary"
                 )  
         
+        # Create a button to generate the counterfactuals
         if st.button("Generate Counterfactuals"):
             with st.spinner("Generating counterfactuals"):
+                # Generate the counterfactuals using the selected configuration
                 st.session_state.counterfactuals = st.session_state.classifier.generate_counterfactuals(
                     show_logs=st.session_state.config["SHOW_LOGS"],
                     method=dice_method,
@@ -231,13 +264,17 @@ with tab1:
                     n_cfs=n_cfs)
                 st.rerun()
             
+        # Check if the counterfactuals have been generated and display them if they are available
         if st.session_state.counterfactuals is None:
             st.warning("The counterfactuals have not been generated yet. Please click the 'Generate Counterfactuals' button to generate them.")
         else:
             st.write("Configurations that would receive a loan approval:")
 
-            # Display the counterfactual result
+            # Display the counterfactual result as a dataframe
             st.dataframe(st.session_state.counterfactuals.drop("RiskPerformance", axis=1))
+            
+            st.info("You can export the data via the **Export Data** section in the sidebar.")
+        
         
 with tab2:
     st.write("Use the dropdown to select the method for dimensionality reduction")

@@ -6,8 +6,9 @@ MESSAGES:
 
 SHOW_LOGS: True
 
-DATA_FILE: data/heloc_dataset_v1.csv
+MAX_CFS: 10
 
+DATA_FILE: data/heloc_dataset_v1.csv
 MODEL_FILE: models/MainModel.pkl
 
 INPUT_VALUES:
