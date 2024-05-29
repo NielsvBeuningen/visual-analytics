@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE
+from sklearn.manifold import TSNE, MDS
 
 class Visualizer:
     """
@@ -40,7 +40,9 @@ class Visualizer:
         if method == 'PCA':
             reduced_data = PCA(**params).fit_transform(data)
         elif method == 'tSNE':
-            reduced_data = TSNE(**params).fit_transform(data)
+            reduced_data = TSNE(**params).fit_transform(self.data)
+        elif method == 'MDS':
+            reduced_data = MDS(**params).fit_transform(self.data)
         else:
             raise ValueError('Invalid method')
         
