@@ -5,3 +5,6 @@ scikit-learn
 pandas
 numpy
 matplotlib
+plotly
+ipykernel
+dice-ml

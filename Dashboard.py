@@ -5,15 +5,58 @@ import yaml
 from yaml.loader import SafeLoader
 
 import pandas as pd
-import numpy as np
 
 from lib.Visualizer import Visualizer
+from lib.Classifier import Classifier
+from lib.Dataloader import Dataloader
+
+# Warnings disabling
+def warn(*args, **kwargs):
+    pass
+import warnings
+warnings.warn = warn
+
 
 # Try to load the configuration file, if it fails, stop the app
 try:
+    st.set_page_config(page_title="HELOC Dashboard", layout="wide")
+
     if "config" not in st.session_state:
         with open('config.yaml') as config_file:
             st.session_state.config = yaml.load(config_file, Loader=SafeLoader)
+            
+    if "customer_data" not in st.session_state:
+        st.session_state.customer_data = {}
+        # Use default values for the customer data
+        for feature in st.session_state.config["INPUT_VALUES"]:
+            st.session_state.customer_data[feature] = st.session_state.config["INPUT_VALUES"][feature]["DEFAULT"]
+     
+    if "customer_prediction" not in st.session_state:
+        st.session_state.customer_prediction = None
+       
+    if "counterfactuals" not in st.session_state:
+        st.session_state.counterfactuals = None
+        
+    if "output_customer_row" not in st.session_state:
+        st.session_state.output_customer_row = None
+        
+    if "dataloader" not in st.session_state:
+        st.session_state.dataloader = Dataloader(
+            data_path = st.session_state.config["DATA_FILE"]
+            )
+            
+    if "classifier" not in st.session_state:
+        st.session_state.classifier = Classifier(
+            file_path = st.session_state.config["MODEL_FILE"], 
+            data=st.session_state.dataloader.original_features
+            )
+        
+    if "visualizer" not in st.session_state:
+        st.session_state.visualizer = Visualizer(
+            original_data = st.session_state.dataloader.original_features.drop("RiskPerformance", axis = 1), 
+            original_labels = st.session_state.dataloader.labels
+            )
+
             
 except Exception as e:
     st.write(e)
@@ -21,13 +64,12 @@ except Exception as e:
     st.stop()
 
 # Create the page layout
-st.set_page_config(page_title="HELOC Dashboard", layout="wide")
 st.title("HELOC Dashboard")
 st.sidebar.title("Customer Information")
 
 # CUSTOMER NAME NEEDED?
 # customer_name = st.sidebar.text_input("Customer Name", "John Doe")
-customer_age = st.sidebar.number_input("Customer Age", 18, 100, 25)
+# customer_age = st.sidebar.number_input("Customer Age", 18, 100, 25)
 
 def update_slider() -> None:
     """
@@ -35,61 +77,213 @@ def update_slider() -> None:
     @param: None
     @return: None
     """
-    for feature in st.session_state.config["INPUT_VALUES"]:
-        st.session_state[f'slider_{feature}'] = st.session_state[f'numeric_{feature}']
+    feature = st.session_state["feature_select"]
+    st.session_state[f'slider_{feature}'] = st.session_state[f'numeric_{feature}']
+    st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
+    st.session_state.customer_prediction = None
+    st.session_state.output_customer_row = None
+        
 def update_numin() -> None:
     """
     Update the numeric input value when the slider is changed
     @param: None
     @return: None
     """
-    for feature in st.session_state.config["INPUT_VALUES"]:
-        st.session_state[f'numeric_{feature}'] = st.session_state[f'slider_{feature}']
+    feature = st.session_state["feature_select"]
+    st.session_state[f'numeric_{feature}'] = st.session_state[f'slider_{feature}']
+    st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
+    st.session_state.customer_prediction = None
+    st.session_state.output_customer_row = None
     
-# Loop over all features in the configuration file to generate sliders and numeric inputs
-for i, (name, item) in enumerate(st.session_state.config["INPUT_VALUES"].items()):
+def update_features_vary() -> None:
+    """
+    Update the features to vary when the select all checkbox is changed
+    @param: None
+    @return: None
+    """
+    if st.session_state.select_all:
+        st.session_state.features_vary = list(st.session_state.customer_row.columns)
+    else:
+        st.session_state.features_vary = []
     
-    # CAN BE USED TO CREATE EXPANDERS IN TWO COLUMNS IF NEEDED
-    # if i % 2 == 0:
-    #     col1, col2 = st.columns(2)
-    #     exp = col1.expander(name, expanded=True)
-    # else:
-    #     exp = col2.expander(name, expanded=True)
+def update_select_all() -> None:
+    """
+    Update the select all checkbox when the features to vary are changed
+    @param: None
+    @return: None
+    """
+    if len(st.session_state.features_vary) == len(st.session_state.customer_row.columns):
+        st.session_state.select_all = True
+    else:
+        st.session_state.select_all = False
+
+@st.cache_data
+def convert_df(df: pd.DataFrame) -> bytes:
+    """
+    Small helper function to convert a dataframe to a csv file
+    @param df: the dataframe to convert
+    @return: the csv file as bytes
+    """
+    return df.to_csv().encode("utf-8")
+
+
+# Generate the sliders and numeric inputs for the features based on a selectbox
+st.sidebar.write("Select a feature to update the value")
+exp = st.sidebar.expander("Customer Data Updating", expanded=True)
+with exp:
+    # Create a selectbox to choose the feature to update
+    feature = st.selectbox("Feature", list(st.session_state.config["INPUT_VALUES"].keys()), key="feature_select")
     
-    # NOW JUST DOING IN IN SIDEBAR
+    # Create a numeric input and a slider for the selected feature
+    val = st.number_input('Numeric', value = st.session_state.customer_data[feature], key = f'numeric_{feature}', on_change = update_slider)
+    slider_value = st.slider('Slider', min_value = st.session_state.config["INPUT_VALUES"][feature]["MIN"], 
+                            value = val, 
+                            max_value = st.session_state.config["INPUT_VALUES"][feature]["MAX"],
+                            step = 1,
+                            key = f'slider_{feature}', on_change= update_numin)
+
+# Create an export section to export the data if the customer data has been assessed
+if st.session_state.output_customer_row is not None:
+    data_exp = st.sidebar.expander("Export Data", expanded=True)
     
-    # Generate expander with numeric input and slider for each feature
-    exp = st.sidebar.expander(name, expanded=True)
-    with exp:
-        val = st.number_input('Numeric', value = st.session_state.config["INPUT_VALUES"][name]["DEFAULT"], key = f'numeric_{name}', on_change = update_slider)
-        slider_value = st.slider('Slider', min_value = st.session_state.config["INPUT_VALUES"][name]["MIN"], 
-                                value = val, 
-                                max_value = st.session_state.config["INPUT_VALUES"][name]["MAX"],
-                                step = 1,
-                                key = f'slider_{name}', on_change= update_numin)
+    # Check if counterfactuals have been generated, if not, only allow the customer data to be exported
+    if st.session_state.counterfactuals is None or "Error" in st.session_state.counterfactuals:
+        options = ["Customer Data"]
+    else:
+        options = ["Customer Data", "Counterfactuals"]
+        
+    # Create a multiselect to select the data to export
+    selected_data = data_exp.multiselect(
+        label = "Select data to export", 
+        options = options, 
+        default = options
+        )
+    
+    # Create a text input to enter the filename
+    filename = data_exp.text_input(
+            label="File Name", value="important_data.csv"
+            )
+    
+    # Loop over the selected data to create export dataframe
+    export_df = pd.DataFrame()
+    for data in selected_data:
+        if data == "Customer Data":
+            row = st.session_state.output_customer_row
+            row.index = ["customer"]
+            export_df = export_df._append(row)
+        elif data == "Counterfactuals":
+            export_df = export_df._append(st.session_state.counterfactuals)
+            
+    # Convert the dataframe to bytes to be able to download it
+    csv = convert_df(export_df)
+            
+    # Create a download button to download the data
+    data_exp.download_button(
+        label = "Download Data",
+        data = csv,
+        file_name = filename,
+        mime="text/csv"
+    )
+        
+# Show the customer data
+st.header("Customer Information")
  
-# LOAD THE DATA HERE FOR NOW AND THEN PASS TO VISUALIZER
-# Load the data
-features = pd.read_csv(st.session_state.config["DATA_FILE"])
-feature_names = features.columns
+# Show the customer data as a dataframe
+st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
+customer_features = st.session_state.customer_row.to_numpy()
+st.dataframe(st.session_state.customer_row, hide_index=True) 
 
-# Determine the label dimension
-labelDimension = "RiskPerformance"
-feature_names = feature_names.drop(labelDimension)
-labels = np.array(features[labelDimension])
+# Create the tabs for the prediction and the landscape
+tab1, tab2 = st.tabs(["Prediction", "Landscape"])
 
-# Remove the labels from the features
-original_features= features.drop(labelDimension, axis = 1)
- 
-customer_row = pd.DataFrame(columns = original_features.columns)
-for feature in original_features.columns:
-    customer_row[feature] = [st.session_state[f'numeric_{feature}']]
-     
-# Create a visualizer object with the data file   
-visualizer = Visualizer(original_data=original_features, original_labels=labels, customer_row = customer_row)
+with tab1:
+    # This tab is used for assessing the customer data and generating counterfactuals if the loan is denied
+    st.subheader("AI Assessment")
+    st.write("Click the button below to predict the loan acceptance for the current customer data.")
+    
+    # Create a button to predict the loan acceptance
+    if st.button("Predict"):
+        with st.spinner("Predicting label"):
+            # Perform the prediction
+            st.session_state.customer_prediction = st.session_state.classifier.predict(customer_features)
+            st.session_state.output_customer_row = st.session_state.customer_row.copy()
+            st.rerun()
+            
+    # Check if the prediction has been performed
+    if st.session_state.customer_prediction is None:
+        st.warning("The current customer data has not been assessed yet. Please click the 'Predict' button to get a prediction.")
+    else:
 
-# Create an expander for the dimensionality reduction section
-with st.expander("Dimensionality Reduction", expanded=True):
+        # Display the prediction result and the probability, update the export row based on the prediction
+        if st.session_state.customer_prediction["Prediction"] == "Good":
+            st.session_state.output_customer_row["RiskPerformance"] = "Good"
+            st.success("Loan accepted :smile:")
+            st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][1], 2)}")
+        else:
+            st.session_state.output_customer_row["RiskPerformance"] = "Bad"
+            st.error("Load denied :pensive:")
+            st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
+            
+            # If the loan is denied, show configuration for generating counterfactuals
+            st.divider()
+            st.subheader("Counterfactuals")
+            st.write("Here you can generate counterfactuals for the customer data to find out what changes would be needed for the loan to be accepted.")
+            
+            # Create an expander for the counterfactual settings
+            cf_exp = st.expander("Counterfactual Settings", expanded=True)
+            
+            with cf_exp:            
+                # Allow the user to select the method for generating counterfactuals
+                dice_method = st.selectbox("DiCE Method", ["kdtree", "random", "genetic"])
+                
+                # Allow the user to select the number of counterfactuals to generate
+                n_cfs = st.slider("Number of Counterfactuals", 1, st.session_state.config["MAX_CFS"], 1)   
+                
+                # Checkbox for quick (de)selection of all features
+                select_all = st.checkbox("Select all features", value=True, on_change=update_features_vary, key="select_all")     
+                            
+                # Allow the user to select the features to vary for the counterfactuals generation
+                features_vary = st.multiselect(
+                    label="Features to use for counterfactuals", 
+                    options=st.session_state.customer_row.columns,
+                    default=list(st.session_state.customer_row.columns),
+                    on_change=update_select_all,
+                    key="features_vary"
+                    )  
+            
+            if len(features_vary) == 0:
+                st.warning("Please select at least one feature to generate counterfactuals.")
+            else:
+                # Create a button to generate the counterfactuals
+                if st.button("Generate Counterfactuals"):
+                    with st.spinner("Generating counterfactuals"):
+                        # Generate the counterfactuals using the selected configuration
+                        st.session_state.counterfactuals = st.session_state.classifier.generate_counterfactuals(
+                            method=dice_method,
+                            feature_names=list(st.session_state.customer_row.columns), 
+                            features_vary=features_vary,
+                            customer_data=st.session_state.customer_row,
+                            n_cfs=n_cfs)
+                        st.rerun()
+                
+            # Check if the counterfactuals have been generated and display them if they are available
+            if st.session_state.counterfactuals is None:
+                st.warning("The counterfactuals have not been generated yet. Please click the 'Generate Counterfactuals' button to generate them.")
+            else:
+                if "Error" in st.session_state.counterfactuals:
+                    st.error(st.session_state.config["MESSAGES"]["ERRORS"]["CF"])
+                    if st.session_state.config["SHOW_LOGS"]: 
+                        st.write(st.session_state.counterfactuals[1])
+                else:
+                    st.write("Configurations that would receive a loan approval:")
+
+                    # Display the counterfactual result as a dataframe
+                    st.dataframe(st.session_state.counterfactuals.drop("RiskPerformance", axis=1))
+                    
+                    st.info("You can export the data via the **Export Data** section in the sidebar.")
+        
+        
+with tab2:
     st.write("Use the dropdown to select the method for dimensionality reduction")
     
     # Create a selectbox to choose the method for dimensionality reduction
@@ -117,7 +311,8 @@ with st.expander("Dimensionality Reduction", expanded=True):
     # Create a placeholder for the button to apply the dimensionality reduction (just for ui styling)
     start_btn = st.empty()
     
-# React to the button press and perform the dimensionality reduction
-if start_btn.button("Apply"):    
-    with st.spinner(f"Performing dimensionality reduction with {method}"):
-        visualizer.dim_reduction(method=method, params=params)
+    # React to the button press and perform the dimensionality reduction
+    if start_btn.button("Apply"):    
+        with st.spinner(f"Performing dimensionality reduction with {method}"):
+            st.session_state.visualizer.dim_reduction(method=method, params=params, customer_row=st.session_state.customer_row)
+

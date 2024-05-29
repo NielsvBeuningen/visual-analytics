@@ -1,8 +1,15 @@
 MESSAGES:
   ERRORS:
     START: Error starting the application
+    MODEL: Error loading the model, have you stored it locally?
+    CF: Not able to find counterfactuals
+
+SHOW_LOGS: False
+
+MAX_CFS: 10
 
 DATA_FILE: data/heloc_dataset_v1.csv
+MODEL_FILE: models/MainModel.pkl
 
 INPUT_VALUES:
   ExternalRiskEstimate:
@@ -15,131 +22,131 @@ INPUT_VALUES:
     NAME: AverageMInFile
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 500
+    DEFAULT: 30
   NumSatisfactoryTrades:
     NAME: NumSatisfactoryTrades
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 100
+    DEFAULT: 25
   NumTrades60Ever/DerogPubRec:
     NAME: NumTrades60Ever/DerogPubRec
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 20
+    DEFAULT: 2
   NumTrades90Ever/DerogPubRec:
     NAME: NumTrades90Ever/DerogPubRec
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 20
+    DEFAULT: 2
   PercentTradesNeverDelq:
     NAME: PercentTradesNeverDelq
     TYPE: INTEGER
     MIN: 0
     MAX: 100
-    DEFAULT: 100
+    DEFAULT: 90
   MSinceMostRecentDelq:
     NAME: MSinceMostRecentDelq
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 10
   MaxDelq/PublicRecLast12M:
     NAME: MaxDelq/PublicRecLast12M
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 9
+    DEFAULT: 5
   MaxDelqEver:
     NAME: MaxDelqEver
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 8
+    DEFAULT: 5
   NumTotalTrades:
     NAME: NumTotalTrades
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 200
+    DEFAULT: 50
   NumTradesOpeninLast12M:
     NAME: NumTradesOpeninLast12M
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 50
+    DEFAULT: 10
   PercentInstallTrades:
     NAME: PercentInstallTrades
     TYPE: INTEGER
     MIN: 0
     MAX: 100
-    DEFAULT: 100
+    DEFAULT: 50
   MSinceMostRecentInqexcl7days:
     NAME: MSinceMostRecentInqexcl7days
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 50
+    DEFAULT: 10
   NumInqLast6M:
     NAME: NumInqLast6M
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 100
+    DEFAULT: 2
   NumInqLast6Mexcl7days:
     NAME: NumInqLast6Mexcl7days
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 100
+    DEFAULT: 2
   NetFractionRevolvingBurden:
     NAME: NetFractionRevolvingBurden
     TYPE: INTEGER
     MIN: 0
-    MAX: 100
+    MAX: 300
     DEFAULT: 100
   NetFractionInstallBurden:
     NAME: NetFractionInstallBurden
     TYPE: INTEGER
     MIN: 0
-    MAX: 100
-    DEFAULT: 100
+    MAX: 500
+    DEFAULT: 10
   NumRevolvingTradesWBalance:
     NAME: NumRevolvingTradesWBalance
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 50
+    DEFAULT: 2
   NumInstallTradesWBalance:
     NAME: NumInstallTradesWBalance
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 50
+    DEFAULT: 2
   NumBank/NatlTradesWHighUtilization:
     NAME: NumBank/NatlTradesWHighUtilization
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
-    DEFAULT: 100
+    MAX: 40
+    DEFAULT: 10
   PercentTradesWBalance:
     NAME: PercentTradesWBalance
     TYPE: INTEGER
     MIN: 0
     MAX: 100
-    DEFAULT: 100
+    DEFAULT: 50
   MSinceOldestTradeOpen:
     NAME: MSinceOldestTradeOpen
     TYPE: INTEGER
     MIN: 0
     MAX: 1000
-    DEFAULT: 100
+    DEFAULT: 30
   MSinceMostRecentTradeOpen:
     NAME: MSinceMostRecentTradeOpen
     TYPE: INTEGER
     MIN: 0
-    MAX: 1000
+    MAX: 500
     DEFAULT: 100
