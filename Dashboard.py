@@ -212,68 +212,68 @@ with tab1:
     # Check if the prediction has been performed
     if st.session_state.customer_prediction is None:
         st.warning("The current customer data has not been assessed yet. Please click the 'Predict' button to get a prediction.")
-        st.stop()
-
-    # Display the prediction result and the probability, update the export row based on the prediction
-    if st.session_state.customer_prediction["Prediction"] == "Good":
-        st.session_state.output_customer_row["RiskPerformance"] = "Good"
-        st.success("Loan accepted :smile:")
-        st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][1], 2)}")
     else:
-        st.session_state.output_customer_row["RiskPerformance"] = "Bad"
-        st.error("Load denied :pensive:")
-        st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
-        
-        # If the loan is denied, show configuration for generating counterfactuals
-        st.divider()
-        st.subheader("Counterfactuals")
-        st.write("Here you can generate counterfactuals for the customer data to find out what changes would be needed for the loan to be accepted.")
-        
-        # Create an expander for the counterfactual settings
-        cf_exp = st.expander("Counterfactual Settings", expanded=True)
-        
-        with cf_exp:            
-            # Allow the user to select the method for generating counterfactuals
-            dice_method = st.selectbox("DiCE Method", ["kdtree", "random", "genetic"])
-            
-            # Allow the user to select the number of counterfactuals to generate
-            n_cfs = st.slider("Number of Counterfactuals", 1, st.session_state.config["MAX_CFS"], 1)   
-            
-            # Checkbox for quick (de)selection of all features
-            select_all = st.checkbox("Select all features", value=True, on_change=update_features_vary, key="select_all")     
-                        
-            # Allow the user to select the features to vary for the counterfactuals generation
-            features_vary = st.multiselect(
-                label="Features to use for counterfactuals", 
-                options=st.session_state.customer_row.columns,
-                default=list(st.session_state.customer_row.columns),
-                on_change=update_select_all,
-                key="features_vary"
-                )  
-        
-        # Create a button to generate the counterfactuals
-        if st.button("Generate Counterfactuals"):
-            with st.spinner("Generating counterfactuals"):
-                # Generate the counterfactuals using the selected configuration
-                st.session_state.counterfactuals = st.session_state.classifier.generate_counterfactuals(
-                    show_logs=st.session_state.config["SHOW_LOGS"],
-                    method=dice_method,
-                    feature_names=list(st.session_state.customer_row.columns), 
-                    features_vary=features_vary,
-                    customer_data=st.session_state.customer_row,
-                    n_cfs=n_cfs)
-                st.rerun()
-            
-        # Check if the counterfactuals have been generated and display them if they are available
-        if st.session_state.counterfactuals is None:
-            st.warning("The counterfactuals have not been generated yet. Please click the 'Generate Counterfactuals' button to generate them.")
-        else:
-            st.write("Configurations that would receive a loan approval:")
 
-            # Display the counterfactual result as a dataframe
-            st.dataframe(st.session_state.counterfactuals.drop("RiskPerformance", axis=1))
+        # Display the prediction result and the probability, update the export row based on the prediction
+        if st.session_state.customer_prediction["Prediction"] == "Good":
+            st.session_state.output_customer_row["RiskPerformance"] = "Good"
+            st.success("Loan accepted :smile:")
+            st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][1], 2)}")
+        else:
+            st.session_state.output_customer_row["RiskPerformance"] = "Bad"
+            st.error("Load denied :pensive:")
+            st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
             
-            st.info("You can export the data via the **Export Data** section in the sidebar.")
+            # If the loan is denied, show configuration for generating counterfactuals
+            st.divider()
+            st.subheader("Counterfactuals")
+            st.write("Here you can generate counterfactuals for the customer data to find out what changes would be needed for the loan to be accepted.")
+            
+            # Create an expander for the counterfactual settings
+            cf_exp = st.expander("Counterfactual Settings", expanded=True)
+            
+            with cf_exp:            
+                # Allow the user to select the method for generating counterfactuals
+                dice_method = st.selectbox("DiCE Method", ["kdtree", "random", "genetic"])
+                
+                # Allow the user to select the number of counterfactuals to generate
+                n_cfs = st.slider("Number of Counterfactuals", 1, st.session_state.config["MAX_CFS"], 1)   
+                
+                # Checkbox for quick (de)selection of all features
+                select_all = st.checkbox("Select all features", value=True, on_change=update_features_vary, key="select_all")     
+                            
+                # Allow the user to select the features to vary for the counterfactuals generation
+                features_vary = st.multiselect(
+                    label="Features to use for counterfactuals", 
+                    options=st.session_state.customer_row.columns,
+                    default=list(st.session_state.customer_row.columns),
+                    on_change=update_select_all,
+                    key="features_vary"
+                    )  
+            
+            # Create a button to generate the counterfactuals
+            if st.button("Generate Counterfactuals"):
+                with st.spinner("Generating counterfactuals"):
+                    # Generate the counterfactuals using the selected configuration
+                    st.session_state.counterfactuals = st.session_state.classifier.generate_counterfactuals(
+                        show_logs=st.session_state.config["SHOW_LOGS"],
+                        method=dice_method,
+                        feature_names=list(st.session_state.customer_row.columns), 
+                        features_vary=features_vary,
+                        customer_data=st.session_state.customer_row,
+                        n_cfs=n_cfs)
+                    st.rerun()
+                
+            # Check if the counterfactuals have been generated and display them if they are available
+            if st.session_state.counterfactuals is None:
+                st.warning("The counterfactuals have not been generated yet. Please click the 'Generate Counterfactuals' button to generate them.")
+            else:
+                st.write("Configurations that would receive a loan approval:")
+
+                # Display the counterfactual result as a dataframe
+                st.dataframe(st.session_state.counterfactuals.drop("RiskPerformance", axis=1))
+                
+                st.info("You can export the data via the **Export Data** section in the sidebar.")
         
         
 with tab2:
