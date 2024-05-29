@@ -185,13 +185,36 @@ if st.session_state.output_customer_row is not None:
         mime="text/csv"
     )
         
+header = st.container()
+
 # Show the customer data
-st.header("Customer Information")
+header.header("Customer Information")
  
 # Show the customer data as a dataframe
 st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
 customer_features = st.session_state.customer_row.to_numpy()
-st.dataframe(st.session_state.customer_row, hide_index=True) 
+header.dataframe(st.session_state.customer_row, hide_index=True) 
+header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
+
+### Custom CSS for the sticky header
+st.markdown(
+    """
+<style>
+    div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
+        position: sticky;
+        top: 2.875rem;
+        background-color: white;
+        z-index: 999;
+    }
+    .fixed-header {
+        border-bottom: 3px solid #E6E7E9;
+    }
+</style>
+    """,
+    unsafe_allow_html=True
+)    
+    
+
 
 # Create the tabs for the prediction and the landscape
 tab1, tab2 = st.tabs(["Prediction", "Landscape"])
@@ -258,12 +281,13 @@ with tab1:
                 if st.button("Generate Counterfactuals"):
                     with st.spinner("Generating counterfactuals"):
                         # Generate the counterfactuals using the selected configuration
-                        st.session_state.counterfactuals = st.session_state.classifier.generate_counterfactuals(
+                        counterfactuals = st.session_state.classifier.generate_counterfactuals(
                             method=dice_method,
                             feature_names=list(st.session_state.customer_row.columns), 
                             features_vary=features_vary,
                             customer_data=st.session_state.customer_row,
                             n_cfs=n_cfs)
+                        st.session_state.counterfactuals = counterfactuals[list(st.session_state.customer_row.columns) + ["RiskPerformance"]]
                         st.rerun()
                 
             # Check if the counterfactuals have been generated and display them if they are available
@@ -275,10 +299,12 @@ with tab1:
                     if st.session_state.config["SHOW_LOGS"]: 
                         st.write(st.session_state.counterfactuals[1])
                 else:
-                    st.write("Configurations that would receive a loan approval:")
+                    st.write("Configurations that would receive a loan approval together with the difference from the customer data:")
 
                     # Display the counterfactual result as a dataframe
-                    st.dataframe(st.session_state.counterfactuals.drop("RiskPerformance", axis=1))
+                    cf_df = st.session_state.counterfactuals.drop("RiskPerformance", axis=1)
+                    
+                    st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, counterfactuals=cf_df) 
                     
                     st.info("You can export the data via the **Export Data** section in the sidebar.")
         
