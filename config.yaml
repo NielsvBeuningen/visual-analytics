@@ -4,7 +4,7 @@ MESSAGES:
     MODEL: Error loading the model, have you stored it locally?
     CF: Not able to find counterfactuals
 
-SHOW_LOGS: True
+SHOW_LOGS: False
 
 MAX_CFS: 10
 

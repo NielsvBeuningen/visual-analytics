@@ -40,7 +40,7 @@ class Classifier:
         
         return result
     
-    def generate_counterfactuals(self, show_logs: bool, method: str, feature_names: list, features_vary: list, customer_data: pd.DataFrame, n_cfs=1) -> pd.DataFrame:   
+    def generate_counterfactuals(self, method: str, feature_names: list, features_vary: list, customer_data: pd.DataFrame, n_cfs=1) -> pd.DataFrame | tuple[str, Exception]:   
              
         # Initialize DiCE model
         d = dice_ml.Data(dataframe=self.data, continuous_features=feature_names, outcome_name='RiskPerformance')
@@ -66,10 +66,8 @@ class Classifier:
                 permitted_range=permitted_range
                 )
         except Exception as e:
-            st.error(st.session_state.config["MESSAGES"]["ERRORS"]["CF"])
-            if show_logs: 
-                st.write(e)
-            return None
+            result = ("Error", e)
+            return result
 
         result = counterfactuals.cf_examples_list[0].final_cfs_df
         # Add id column with "counterfactual_i" as index

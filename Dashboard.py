@@ -147,7 +147,7 @@ if st.session_state.output_customer_row is not None:
     data_exp = st.sidebar.expander("Export Data", expanded=True)
     
     # Check if counterfactuals have been generated, if not, only allow the customer data to be exported
-    if st.session_state.counterfactuals is None:
+    if st.session_state.counterfactuals is None or "Error" in st.session_state.counterfactuals:
         options = ["Customer Data"]
     else:
         options = ["Customer Data", "Counterfactuals"]
@@ -251,29 +251,36 @@ with tab1:
                     key="features_vary"
                     )  
             
-            # Create a button to generate the counterfactuals
-            if st.button("Generate Counterfactuals"):
-                with st.spinner("Generating counterfactuals"):
-                    # Generate the counterfactuals using the selected configuration
-                    st.session_state.counterfactuals = st.session_state.classifier.generate_counterfactuals(
-                        show_logs=st.session_state.config["SHOW_LOGS"],
-                        method=dice_method,
-                        feature_names=list(st.session_state.customer_row.columns), 
-                        features_vary=features_vary,
-                        customer_data=st.session_state.customer_row,
-                        n_cfs=n_cfs)
-                    st.rerun()
+            if len(features_vary) == 0:
+                st.warning("Please select at least one feature to generate counterfactuals.")
+            else:
+                # Create a button to generate the counterfactuals
+                if st.button("Generate Counterfactuals"):
+                    with st.spinner("Generating counterfactuals"):
+                        # Generate the counterfactuals using the selected configuration
+                        st.session_state.counterfactuals = st.session_state.classifier.generate_counterfactuals(
+                            method=dice_method,
+                            feature_names=list(st.session_state.customer_row.columns), 
+                            features_vary=features_vary,
+                            customer_data=st.session_state.customer_row,
+                            n_cfs=n_cfs)
+                        st.rerun()
                 
             # Check if the counterfactuals have been generated and display them if they are available
             if st.session_state.counterfactuals is None:
                 st.warning("The counterfactuals have not been generated yet. Please click the 'Generate Counterfactuals' button to generate them.")
             else:
-                st.write("Configurations that would receive a loan approval:")
+                if "Error" in st.session_state.counterfactuals:
+                    st.error(st.session_state.config["MESSAGES"]["ERRORS"]["CF"])
+                    if st.session_state.config["SHOW_LOGS"]: 
+                        st.write(st.session_state.counterfactuals[1])
+                else:
+                    st.write("Configurations that would receive a loan approval:")
 
-                # Display the counterfactual result as a dataframe
-                st.dataframe(st.session_state.counterfactuals.drop("RiskPerformance", axis=1))
-                
-                st.info("You can export the data via the **Export Data** section in the sidebar.")
+                    # Display the counterfactual result as a dataframe
+                    st.dataframe(st.session_state.counterfactuals.drop("RiskPerformance", axis=1))
+                    
+                    st.info("You can export the data via the **Export Data** section in the sidebar.")
         
         
 with tab2:
