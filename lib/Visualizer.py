@@ -43,27 +43,6 @@ class Visualizer:
         styled_df = df.style.applymap(self.color_diff)
         st.dataframe(styled_df)
         
-    # def highlight_value(self, cell):
-    #     or_val = cell.split('(')[0]
-    #     re_val = cell.split('(')[-1].split(')')[0]
-    #     val = float(re_val)
-        
-    #     # Logic to determine the color of the cell
-    #     if val == 0:
-    #         color = 'black'
-    #     elif val < 0:
-    #         color = 'red'
-    #     else:
-    #         color = 'green'
-        
-    #     cell = f'{or_val} (<span style="color: {color};">{re_val}</span>)'
-    #     return cell
-    
-    # def display_differences(self, df):
-    #     for col in df.columns:
-    #         df[col] = df[col].apply(self.highlight_value)
-    #     st.write(df.to_html(escape=False), unsafe_allow_html=True)
-        
     def counterfactual_visualization(self, customer_row: pd.DataFrame, counterfactuals: pd.DataFrame) -> None:
         # Use the original data and the counterfactuals to check the difference
         differences = pd.DataFrame()
@@ -106,7 +85,7 @@ class Visualizer:
         # If counterfactuals are provided, add them to the data and labels
         if counterfactuals is not None:
             data = data.append(counterfactuals, ignore_index=True)
-            labels = np.append(labels, ['Counterfactual']*counterfactuals.shape[0])
+            labels = np.append(labels, ['Counterfactual']*counterfactuals.shape[0])        
         
         # Logic to perform the dimensionality reduction method specified
         if method == 'PCA':
@@ -120,8 +99,39 @@ class Visualizer:
         else:
             raise ValueError('Invalid method')
         
-        # Generate the scatter plot
-        fig = px.scatter(x=reduced_data[:,0], y=reduced_data[:,1], color=labels)
+        # Add index to the reduced data linking back to original data, customer row and counterfactuals
+        index_column = np.array([f"reference_{i}" for i in range(self.data.shape[0])] + ['customer'])
         
-        # Display the scatter plot in the streamlit app
-        st.plotly_chart(fig, use_container_width=True)
+        if counterfactuals is not None:
+            index_column = np.append(index_column, [f"alternative_{i}" for i in range(counterfactuals.shape[0])])
+            
+        reduced_data = np.column_stack((reduced_data, index_column))
+        data.index = index_column
+        
+        # Create symbols array
+        symbols = np.array(['circle']*len(labels))
+        symbols[labels == 'Customer'] = 'star'
+        symbols[labels == 'Counterfactual'] = 'square'
+        
+        BASE_SIZE = 1
+        CUSTOMER = 5
+        COUNTERFACTUAL = 5
+        
+        # Create sizes array
+        sizes = np.array([BASE_SIZE]*len(labels))  # default size for original data points
+        sizes[labels == 'Customer'] = CUSTOMER    # larger size for customer data
+        sizes[labels == 'Counterfactual'] = COUNTERFACTUAL  # different size for counterfactuals
+        
+        # Generate the scatter plot
+        fig = px.scatter(
+            x=reduced_data[:,0], 
+            y=reduced_data[:,1], 
+            color=labels, 
+            symbol=symbols,
+            size=sizes,
+            size_max=12,
+            labels={'x': 'Dimension 1', 'y': 'Dimension 2'},
+            hover_name=reduced_data[:,2]
+            )
+        
+        return fig, data

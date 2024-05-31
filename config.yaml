@@ -9,7 +9,7 @@ SHOW_LOGS: False
 MAX_CFS: 10
 
 DATA_FILE: data/heloc_dataset_v4.csv
-MODEL_FILE: models/MainModel.pkl
+MODEL_FILE: models/MainModel_v2.pkl
 
 INPUT_VALUES:
   ExternalRiskEstimate:
