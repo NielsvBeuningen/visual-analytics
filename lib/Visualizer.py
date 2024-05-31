@@ -7,6 +7,7 @@ import numpy as np
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE, MDS
+import umap
 
 class Visualizer:
     """
@@ -90,25 +91,31 @@ class Visualizer:
         # Display the differences in the dashboard
         self.display_differences(differences)
         
-    def dim_reduction(self, customer_row: pd.DataFrame, method: str = "PCA", params: dict = {}) -> None:
+    def dim_reduction(self, customer_row: pd.DataFrame, method: str = "PCA", params: dict = {}, counterfactuals: pd.DataFrame = None) -> None:
         """
         Function to perform dimensionality reduction and plot the reduced data in a scatter plot
         @param method: the method to use for dimensionality reduction
         @param params: the parameters for the dimensionality reduction method
         @return: None
         """
-        
         # Add the customer row to the data and labels and store the index
         data = self.data._append(customer_row, ignore_index=True)
         labels = np.append(self.labels, 'Customer')
+        
+        # If counterfactuals are provided, add them to the data and labels
+        if counterfactuals is not None:
+            data = data.append(counterfactuals, ignore_index=True)
+            labels = np.append(labels, ['Counterfactual']*counterfactuals.shape[0])
         
         # Logic to perform the dimensionality reduction method specified
         if method == 'PCA':
             reduced_data = PCA(**params).fit_transform(data)
         elif method == 'tSNE':
-            reduced_data = TSNE(**params).fit_transform(self.data)
+            reduced_data = TSNE(**params).fit_transform(data)
         elif method == 'MDS':
-            reduced_data = MDS(**params).fit_transform(self.data)
+            reduced_data = MDS(**params).fit_transform(data)  
+        elif method == "UMAP":
+            reduced_data = umap.UMAP(**params).fit(data).transform(data)
         else:
             raise ValueError('Invalid method')
         

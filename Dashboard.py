@@ -340,5 +340,10 @@ with tab2:
     # React to the button press and perform the dimensionality reduction
     if start_btn.button("Apply"):    
         with st.spinner(f"Performing dimensionality reduction with {method}"):
-            st.session_state.visualizer.dim_reduction(method=method, params=params, customer_row=st.session_state.customer_row)
+            st.session_state.visualizer.dim_reduction(
+                method=method, 
+                params=params, 
+                customer_row=st.session_state.customer_row,
+                counterfactuals=st.session_state.counterfactuals.drop("RiskPerformance", axis=1)
+                )
 
