@@ -100,6 +100,7 @@ class Visualizer:
         """
         # Add the customer row to the data and labels and store the index
         data = self.data._append(customer_row, ignore_index=True)
+        
         labels = np.append(self.labels, 'Customer')
         
         # If counterfactuals are provided, add them to the data and labels

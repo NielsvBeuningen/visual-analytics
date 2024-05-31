@@ -313,7 +313,7 @@ with tab2:
     st.write("Use the dropdown to select the method for dimensionality reduction")
     
     # Create a selectbox to choose the method for dimensionality reduction
-    method = st.selectbox("Method", ["PCA", "tSNE"])
+    method = st.selectbox("Method", ["PCA", "tSNE", "MDS", "UMAP"])
     
     # PCA method
     if method == "PCA":
@@ -332,6 +332,23 @@ with tab2:
             "perplexity": perplexity, 
             "n_jobs": -1,
             "n_iter": n_iter
+            }
+        
+        # MDS method
+    elif method == "MDS":
+        params = {
+            "n_components": 2,
+            "random_state": 42
+            }
+        
+    elif method == "UMAP":
+        n_neighbors = st.slider("Number of Neighbors", 2, 100, 15)
+        min_dist = st.slider("Minimum Distance", 0.01, 0.99, 0.1)
+        n_components = st.slider("Number of Components", 2, 10, 2)
+        params = {
+            "n_neighbors": n_neighbors,
+            "min_dist": min_dist,
+            "n_components": n_components
             }
                 
     # Create a placeholder for the button to apply the dimensionality reduction (just for ui styling)
