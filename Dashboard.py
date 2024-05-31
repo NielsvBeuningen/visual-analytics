@@ -123,6 +123,15 @@ def update_select_all() -> None:
     else:
         st.session_state.select_all = False
 
+def reset_dim_plot() -> None:
+    """
+    Reset the dim plot when the method for dimensionality reduction is changed
+    @param: None
+    @return: None
+    """
+    st.session_state.dim_plot = None
+    st.session_state.dim_plot_data = None
+
 @st.cache_data
 def convert_df(df: pd.DataFrame) -> bytes:
     """
@@ -310,7 +319,7 @@ with tab1:
                     # Display the counterfactual result as a dataframe
                     cf_df = st.session_state.counterfactuals.drop("RiskPerformance", axis=1)
                     
-                    st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, counterfactuals=cf_df) 
+                    st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=cf_df) 
                     
                     st.info("You can inspect the counterfactuals in the **Landscape** tab, or export the data via the **Export Data** section in the sidebar.")
         
@@ -324,7 +333,7 @@ with tab2:
         st.info("The landscape view shows the **customer**, **counterfactuals**, and **reference points**")
     
     # Create a selectbox to choose the method for dimensionality reduction
-    method = st.selectbox("Method", ["PCA", "tSNE", "MDS", "UMAP"])
+    method = st.selectbox("Method", ["PCA", "tSNE", "MDS", "UMAP"], on_change=reset_dim_plot)
     
     # PCA method
     if method == "PCA":
@@ -386,11 +395,11 @@ with tab2:
         # Display the scatter plot in the streamlit app
         event = st.plotly_chart(st.session_state.dim_plot, key="dim_red_plot", use_container_width=True, on_select="rerun")
         
-        if "points" not in event.selection:
-            st.info("Select points in the plot to see the data.")
+        selected_points = event.selection["points"]
+        selected_ids = [point["hovertext"] for point in selected_points]
+        if len(selected_ids) == 0:
+            st.info("**Select** points in the plot to compare with the **customer data**.")
         else:
-            selected_points = event.selection["points"]
-            selected_ids = [point["hovertext"] for point in selected_points]
-            if len(selected_ids) > 0:
+            with st.spinner("Loading data..."):
                 selected_data = st.session_state.dim_plot_data[st.session_state.dim_plot_data.index.isin(selected_ids)]
-                st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, counterfactuals=selected_data) 
+                st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=selected_data) 

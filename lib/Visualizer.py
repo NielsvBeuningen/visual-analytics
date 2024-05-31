@@ -26,24 +26,32 @@ class Visualizer:
         self.labels = original_labels
       
     def color_diff(self, cell_content):
-        # Get the value of the cell
-        val = float(cell_content.split('(')[-1].split(')')[0])
-        
-        # Logic to determine the color of the cell
-        if val == 0:
-            color = 'black'
-        elif val < 0:
-            color = 'red'
+        if '(' not in cell_content:
+            return f'color: black'
         else:
-            color = 'green'
+            # Get the value of the cell
+            val = float(cell_content.split('(')[-1].split(')')[0])
             
-        return f'color: {color}'
+            # Logic to determine the color of the cell
+            if val == 0:
+                color = 'black'
+            elif val < 0:
+                color = 'red'
+            else:
+                color = 'green'
+                
+            return f'color: {color}'
 
     def display_differences(self, df):
         styled_df = df.style.applymap(self.color_diff)
         st.dataframe(styled_df)
         
-    def counterfactual_visualization(self, customer_row: pd.DataFrame, counterfactuals: pd.DataFrame) -> None:
+    def counterfactual_visualization(self, customer_row: pd.DataFrame, cf_df: pd.DataFrame) -> None:
+        counterfactuals = cf_df.copy()
+        # If "label" column is present, remove it
+        if "Label" in cf_df.columns:
+            counterfactuals = counterfactuals.drop(columns=["Label"])
+            
         # Use the original data and the counterfactuals to check the difference
         differences = pd.DataFrame()
         for index, row in counterfactuals.iterrows():
@@ -65,8 +73,14 @@ class Visualizer:
             # Add diff overview as row to diff_row
             diff_row = diff_row._append(pd.Series(diff_overview, index=counterfactuals.columns), ignore_index=True)
             diff_row.index = [index]
+            
+            if "Label" in cf_df.columns:
+                # Add as column or index the label
+                # diff_row.insert(0, "Label", cf_df.loc[index, "Label"])
+                diff_row.index = [f"{index} ({cf_df.loc[index, 'Label']})"]
+            
             differences = differences._append(diff_row)
-
+        
         # Display the differences in the dashboard
         self.display_differences(differences)
         
@@ -85,7 +99,7 @@ class Visualizer:
         # If counterfactuals are provided, add them to the data and labels
         if counterfactuals is not None:
             data = data.append(counterfactuals, ignore_index=True)
-            labels = np.append(labels, ['Counterfactual']*counterfactuals.shape[0])        
+            labels = np.append(labels, ['Alternative']*counterfactuals.shape[0])        
         
         # Logic to perform the dimensionality reduction method specified
         if method == 'PCA':
@@ -107,11 +121,13 @@ class Visualizer:
             
         reduced_data = np.column_stack((reduced_data, index_column))
         data.index = index_column
+        labeled_data = data.copy()
+        labeled_data['Label'] = labels
         
         # Create symbols array
         symbols = np.array(['circle']*len(labels))
         symbols[labels == 'Customer'] = 'star'
-        symbols[labels == 'Counterfactual'] = 'square'
+        symbols[labels == 'Alternative'] = 'square'
         
         BASE_SIZE = 1
         CUSTOMER = 5
@@ -120,7 +136,7 @@ class Visualizer:
         # Create sizes array
         sizes = np.array([BASE_SIZE]*len(labels))  # default size for original data points
         sizes[labels == 'Customer'] = CUSTOMER    # larger size for customer data
-        sizes[labels == 'Counterfactual'] = COUNTERFACTUAL  # different size for counterfactuals
+        sizes[labels == 'Alternative'] = COUNTERFACTUAL  # different size for counterfactuals
         
         # Generate the scatter plot
         fig = px.scatter(
@@ -134,4 +150,4 @@ class Visualizer:
             hover_name=reduced_data[:,2]
             )
         
-        return fig, data
+        return fig, labeled_data
