@@ -84,12 +84,12 @@ INPUT_VALUES:
     MIN: 0
     MAX: 100
     DEFAULT: 50
-  MSinceMostRecentInqexcl7days:
-    NAME: MSinceMostRecentInqexcl7days
-    TYPE: INTEGER
-    MIN: 0
-    MAX: 50
-    DEFAULT: 10
+  # MSinceMostRecentInqexcl7days:
+  #   NAME: MSinceMostRecentInqexcl7days
+  #   TYPE: INTEGER
+  #   MIN: 0
+  #   MAX: 50
+  #   DEFAULT: 10
   NumInqLast6M:
     NAME: NumInqLast6M
     TYPE: INTEGER
@@ -144,9 +144,9 @@ INPUT_VALUES:
   #   MIN: 0
   #   MAX: 1000
   #   DEFAULT: 30
-  # MSinceMostRecentTradeOpen:
-  #   NAME: MSinceMostRecentTradeOpen
-  #   TYPE: INTEGER
-  #   MIN: 0
-  #   MAX: 500
-  #   DEFAULT: 100
+  MSinceMostRecentTradeOpen:
+    NAME: MSinceMostRecentTradeOpen
+    TYPE: INTEGER
+    MIN: 0
+    MAX: 500
+    DEFAULT: 100

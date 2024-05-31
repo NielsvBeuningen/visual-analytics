@@ -32,20 +32,20 @@ class Visualizer:
         @param params: the parameters for the dimensionality reduction method
         @return: None
         """
-        
         # Add the customer row to the data and labels and store the index
         data = self.data._append(customer_row, ignore_index=True)
+        
         labels = np.append(self.labels, 'Customer')
         
         # Logic to perform the dimensionality reduction method specified
         if method == 'PCA':
             reduced_data = PCA(**params).fit_transform(data)
         elif method == 'tSNE':
-            reduced_data = TSNE(**params).fit_transform(self.data)
+            reduced_data = TSNE(**params).fit_transform(data)
         elif method == 'MDS':
-            reduced_data = MDS(**params).fit_transform(self.data)  
+            reduced_data = MDS(**params).fit_transform(data)  
         elif method == "UMAP":
-            reduced_data = umap.UMAP(**params).fit(self.data).transform(self.data)
+            reduced_data = umap.UMAP(**params).fit(data).transform(data)
         else:
             raise ValueError('Invalid method')
         
