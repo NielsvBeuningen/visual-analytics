@@ -56,6 +56,10 @@ try:
             original_data = st.session_state.dataloader.original_features.drop("RiskPerformance", axis = 1), 
             original_labels = st.session_state.dataloader.labels
             )
+        
+    if "dim_plot" not in st.session_state:
+        st.session_state.dim_plot = None
+        st.session_state.dim_plot_data = None
 
             
 except Exception as e:
@@ -82,6 +86,7 @@ def update_slider() -> None:
     st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
     st.session_state.customer_prediction = None
     st.session_state.output_customer_row = None
+    st.session_state.dim_plot = None
         
 def update_numin() -> None:
     """
@@ -94,6 +99,7 @@ def update_numin() -> None:
     st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
     st.session_state.customer_prediction = None
     st.session_state.output_customer_row = None
+    st.session_state.dim_plot = None
     
 def update_features_vary() -> None:
     """
@@ -116,6 +122,15 @@ def update_select_all() -> None:
         st.session_state.select_all = True
     else:
         st.session_state.select_all = False
+
+def reset_dim_plot() -> None:
+    """
+    Reset the dim plot when the method for dimensionality reduction is changed
+    @param: None
+    @return: None
+    """
+    st.session_state.dim_plot = None
+    st.session_state.dim_plot_data = None
 
 @st.cache_data
 def convert_df(df: pd.DataFrame) -> bytes:
@@ -185,13 +200,36 @@ if st.session_state.output_customer_row is not None:
         mime="text/csv"
     )
         
+header = st.container()
+
 # Show the customer data
-st.header("Customer Information")
+header.header("Customer Information")
  
 # Show the customer data as a dataframe
 st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
 customer_features = st.session_state.customer_row.to_numpy()
-st.dataframe(st.session_state.customer_row, hide_index=True) 
+header.dataframe(st.session_state.customer_row, hide_index=True) 
+header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
+
+### Custom CSS for the sticky header
+st.markdown(
+    """
+<style>
+    div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
+        position: sticky;
+        top: 2.875rem;
+        background-color: white;
+        z-index: 999;
+    }
+    .fixed-header {
+        border-bottom: 3px solid #E6E7E9;
+    }
+</style>
+    """,
+    unsafe_allow_html=True
+)    
+    
+
 
 # Create the tabs for the prediction and the landscape
 tab1, tab2 = st.tabs(["Prediction", "Landscape"])
@@ -258,12 +296,13 @@ with tab1:
                 if st.button("Generate Counterfactuals"):
                     with st.spinner("Generating counterfactuals"):
                         # Generate the counterfactuals using the selected configuration
-                        st.session_state.counterfactuals = st.session_state.classifier.generate_counterfactuals(
+                        counterfactuals = st.session_state.classifier.generate_counterfactuals(
                             method=dice_method,
                             feature_names=list(st.session_state.customer_row.columns), 
                             features_vary=features_vary,
                             customer_data=st.session_state.customer_row,
                             n_cfs=n_cfs)
+                        st.session_state.counterfactuals = counterfactuals[list(st.session_state.customer_row.columns) + ["RiskPerformance"]]
                         st.rerun()
                 
             # Check if the counterfactuals have been generated and display them if they are available
@@ -275,19 +314,26 @@ with tab1:
                     if st.session_state.config["SHOW_LOGS"]: 
                         st.write(st.session_state.counterfactuals[1])
                 else:
-                    st.write("Configurations that would receive a loan approval:")
+                    st.write("Configurations that would receive a loan approval together with the difference from the customer data:")
 
                     # Display the counterfactual result as a dataframe
-                    st.dataframe(st.session_state.counterfactuals.drop("RiskPerformance", axis=1))
+                    cf_df = st.session_state.counterfactuals.drop("RiskPerformance", axis=1)
                     
-                    st.info("You can export the data via the **Export Data** section in the sidebar.")
+                    st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=cf_df) 
+                    
+                    st.info("You can inspect the counterfactuals in the **Landscape** tab, or export the data via the **Export Data** section in the sidebar.")
         
         
 with tab2:
     st.write("Use the dropdown to select the method for dimensionality reduction")
     
+    if st.session_state.counterfactuals is None:
+        st.info("The landscape view shows the **customer** and **reference points**")
+    else:
+        st.info("The landscape view shows the **customer**, **counterfactuals**, and **reference points**")
+    
     # Create a selectbox to choose the method for dimensionality reduction
-    method = st.selectbox("Method", ["PCA", "tSNE", "MDS", "UMAP"])
+    method = st.selectbox("Method", ["PCA", "tSNE", "MDS", "UMAP"], on_change=reset_dim_plot)
     
     # PCA method
     if method == "PCA":
@@ -330,6 +376,30 @@ with tab2:
     
     # React to the button press and perform the dimensionality reduction
     if start_btn.button("Apply"):    
+        if st.session_state.counterfactuals is None:
+            cf_df = None
+        else:
+            cf_df = st.session_state.counterfactuals.drop("RiskPerformance", axis=1)
+        
         with st.spinner(f"Performing dimensionality reduction with {method}"):
-            st.session_state.visualizer.dim_reduction(method=method, params=params, customer_row=st.session_state.customer_row)
-
+            st.session_state.dim_plot, st.session_state.dim_plot_data = st.session_state.visualizer.dim_reduction(
+                method=method, 
+                params=params, 
+                customer_row=st.session_state.customer_row,
+                counterfactuals=cf_df
+                )
+           
+    if st.session_state.dim_plot is None:
+        st.info("Please click the **Apply** button to perform the dimensionality reduction.")
+    else:
+        # Display the scatter plot in the streamlit app
+        event = st.plotly_chart(st.session_state.dim_plot, key="dim_red_plot", use_container_width=True, on_select="rerun")
+        
+        selected_points = event.selection["points"]
+        selected_ids = [point["hovertext"] for point in selected_points]
+        if len(selected_ids) == 0:
+            st.info("**Select** points in the plot to compare with the **customer data**.")
+        else:
+            with st.spinner("Loading data..."):
+                selected_data = st.session_state.dim_plot_data[st.session_state.dim_plot_data.index.isin(selected_ids)]
+                st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=selected_data) 
