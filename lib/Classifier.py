@@ -6,7 +6,6 @@ import pandas as pd
 
 # Counterfactuals
 import dice_ml
-from dice_ml.utils import helpers
 
 class Classifier:
     def __init__(self, file_path: str, data: pd.DataFrame) -> None:
@@ -40,7 +39,7 @@ class Classifier:
         
         return result
     
-    def generate_counterfactuals(self, method: str, feature_names: list, features_vary: list, customer_data: pd.DataFrame, n_cfs=1) -> pd.DataFrame | tuple[str, Exception]:   
+    def generate_counterfactuals(self, method: str, feature_names: list, features_vary: list, customer_data: pd.DataFrame, n_cfs=1):   
              
         # Initialize DiCE model
         d = dice_ml.Data(dataframe=self.data, continuous_features=feature_names, outcome_name='RiskPerformance')
