@@ -5,9 +5,14 @@ import plotly.express as px
 import pandas as pd
 import numpy as np
 
+import time
+
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE, MDS
+from sklearn.preprocessing import StandardScaler
 import umap
+
+from lib.DGrid import DGrid
 
 class Visualizer:
     """
@@ -84,13 +89,25 @@ class Visualizer:
         # Display the differences in the dashboard
         self.display_differences(differences)
         
-    def dim_reduction(self, customer_row: pd.DataFrame, method: str = "PCA", params: dict = {}, counterfactuals: pd.DataFrame = None) -> None:
+    def dim_reduction(
+        self, column_subset: list,
+        customer_row: pd.DataFrame, 
+        method: str = "PCA", params: dict = {}, 
+        counterfactuals: pd.DataFrame = None,
+        glyph_width : float=0.5, 
+        glyph_height : float =0.5, 
+        delta : float = 20.0
+        ) -> None:
         """
         Function to perform dimensionality reduction and plot the reduced data in a scatter plot
         @param method: the method to use for dimensionality reduction
         @param params: the parameters for the dimensionality reduction method
         @return: None
         """
+        # Progress bar to show the progress of the dimensionality reduction
+        my_bar = st.progress(0, text=f"Performing dimensionality reduction with {method}")
+        my_bar.progress(0, text="Loading data")
+        
         # Add the customer row to the data and labels and store the index
         data = self.data._append(customer_row, ignore_index=True)
         
@@ -101,23 +118,47 @@ class Visualizer:
             data = data.append(counterfactuals, ignore_index=True)
             labels = np.append(labels, ['Alternative']*counterfactuals.shape[0])        
         
+        # Select only the columns that are specified
+        filtered_data = data[column_subset]
+        
+        for percent_complete in range(5):
+            time.sleep(0.01)
+            my_bar.progress(percent_complete + 1, text="Scaling data")
+        
+        # Scale the features
+        scaler = StandardScaler()
+        data_scaled = scaler.fit_transform(filtered_data)
+        
+        for percent_complete in range(10):
+            time.sleep(0.01)
+            my_bar.progress(percent_complete + 6, text="Performing dimensionality reduction")
+        
+        
+        
         # Logic to perform the dimensionality reduction method specified
         if method == 'PCA':
-            reduced_data = PCA(**params).fit_transform(data)
+            reduced_data = PCA(**params).fit_transform(data_scaled)
         elif method == 'tSNE':
-            reduced_data = TSNE(**params).fit_transform(data)
+            reduced_data = TSNE(**params).fit_transform(data_scaled)
         elif method == 'MDS':
-            reduced_data = MDS(**params).fit_transform(data)  
+            reduced_data = MDS(**params).fit_transform(data_scaled)  
         elif method == "UMAP":
-            reduced_data = umap.UMAP(**params).fit(data).transform(data)
+            reduced_data = umap.UMAP(**params).fit(data_scaled).transform(data_scaled)
         else:
             raise ValueError('Invalid method')
+        
+        my_bar.progress(50, text="Transforming data for visualization with DGrid")
         
         # Add index to the reduced data linking back to original data, customer row and counterfactuals
         index_column = np.array([f"reference_{i}" for i in range(self.data.shape[0])] + ['customer'])
         
         if counterfactuals is not None:
             index_column = np.append(index_column, [f"alternative_{i}" for i in range(counterfactuals.shape[0])])
+            
+        dgrid = DGrid(glyph_width=glyph_width, glyph_height=glyph_height, delta=delta)  # Adjust glyph size and delta as necessary
+        reduced_data = dgrid.fit_transform(reduced_data)
+            
+        my_bar.progress(90, text="Creating visualization")
             
         reduced_data = np.column_stack((reduced_data, index_column))
         data.index = index_column
@@ -129,7 +170,7 @@ class Visualizer:
         symbols[labels == 'Customer'] = 'star'
         symbols[labels == 'Alternative'] = 'square'
         
-        BASE_SIZE = 1
+        BASE_SIZE = 0.5
         CUSTOMER = 5
         COUNTERFACTUAL = 5
         
@@ -150,4 +191,6 @@ class Visualizer:
             hover_name=reduced_data[:,2]
             )
         
+        my_bar.progress(100, text="Creating visualization")
+        my_bar.empty()
         return fig, labeled_data

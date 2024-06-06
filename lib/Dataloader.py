@@ -10,7 +10,7 @@ class Dataloader:
 
         # Determine the label dimension
         labelDimension = "RiskPerformance"
-        feature_names = feature_names.drop(labelDimension)
+        self.feature_names = feature_names.drop(labelDimension)
         
         self.labels = np.array(features[labelDimension])
 

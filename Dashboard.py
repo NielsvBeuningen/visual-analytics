@@ -71,10 +71,6 @@ except Exception as e:
 st.title("HELOC Dashboard")
 st.sidebar.title("Customer Information")
 
-# CUSTOMER NAME NEEDED?
-# customer_name = st.sidebar.text_input("Customer Name", "John Doe")
-# customer_age = st.sidebar.number_input("Customer Age", 18, 100, 25)
-
 def update_slider() -> None:
     """
     Update the slider value when the numeric input is changed
@@ -84,8 +80,6 @@ def update_slider() -> None:
     feature = st.session_state["feature_select"]
     st.session_state[f'slider_{feature}'] = st.session_state[f'numeric_{feature}']
     st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
-    st.session_state.customer_prediction = None
-    st.session_state.output_customer_row = None
     st.session_state.dim_plot = None
         
 def update_numin() -> None:
@@ -97,8 +91,6 @@ def update_numin() -> None:
     feature = st.session_state["feature_select"]
     st.session_state[f'numeric_{feature}'] = st.session_state[f'slider_{feature}']
     st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
-    st.session_state.customer_prediction = None
-    st.session_state.output_customer_row = None
     st.session_state.dim_plot = None
     
 def update_features_vary() -> None:
@@ -107,21 +99,43 @@ def update_features_vary() -> None:
     @param: None
     @return: None
     """
-    if st.session_state.select_all:
+    if st.session_state.select_all_predict:
         st.session_state.features_vary = list(st.session_state.customer_row.columns)
     else:
         st.session_state.features_vary = []
+        
+def update_column_select() -> None:
+    """
+    Update the features to vary when the select all checkbox is changed
+    @param: None
+    @return: None
+    """
+    if st.session_state.select_all_vis:
+        st.session_state.column_select = list(st.session_state.customer_row.columns)
+    else:
+        st.session_state.column_select = []
     
-def update_select_all() -> None:
+def update_select_all_predict() -> None:
     """
     Update the select all checkbox when the features to vary are changed
     @param: None
     @return: None
     """
     if len(st.session_state.features_vary) == len(st.session_state.customer_row.columns):
-        st.session_state.select_all = True
+        st.session_state.select_all_predict = True
     else:
-        st.session_state.select_all = False
+        st.session_state.select_all_predict = False
+        
+def update_select_all_vis() -> None:
+    """
+    Update the select all checkbox when the features to vary are changed
+    @param: None
+    @return: None
+    """
+    if len(st.session_state.column_select) == len(st.session_state.customer_row.columns):
+        st.session_state.select_all_vis = True
+    else:
+        st.session_state.select_all_vis = False
 
 def reset_dim_plot() -> None:
     """
@@ -207,7 +221,7 @@ header.header("Customer Information")
  
 # Show the customer data as a dataframe
 st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
-customer_features = st.session_state.customer_row.to_numpy()
+
 header.dataframe(st.session_state.customer_row, hide_index=True) 
 header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
 
@@ -242,9 +256,12 @@ with tab1:
     # Create a button to predict the loan acceptance
     if st.button("Predict"):
         with st.spinner("Predicting label"):
+            customer_features = st.session_state.customer_row.to_numpy()
+            
             # Perform the prediction
             st.session_state.customer_prediction = st.session_state.classifier.predict(customer_features)
             st.session_state.output_customer_row = st.session_state.customer_row.copy()
+            st.session_state.counterfactuals = None
             st.rerun()
             
     # Check if the prediction has been performed
@@ -278,14 +295,17 @@ with tab1:
                 n_cfs = st.slider("Number of Counterfactuals", 1, st.session_state.config["MAX_CFS"], 1)   
                 
                 # Checkbox for quick (de)selection of all features
-                select_all = st.checkbox("Select all features", value=True, on_change=update_features_vary, key="select_all")     
+                select_all = st.checkbox(
+                    "Select all features", value=True, 
+                    on_change=update_features_vary, 
+                    key="select_all_predict")     
                             
                 # Allow the user to select the features to vary for the counterfactuals generation
                 features_vary = st.multiselect(
                     label="Features to use for counterfactuals", 
                     options=st.session_state.customer_row.columns,
                     default=list(st.session_state.customer_row.columns),
-                    on_change=update_select_all,
+                    on_change=update_select_all_predict,
                     key="features_vary"
                     )  
             
@@ -332,22 +352,62 @@ with tab2:
     else:
         st.info("The landscape view shows the **customer**, **counterfactuals**, and **reference points**")
     
+    column_exp = st.expander("Column Selection", expanded=True)
+    
+    # Checkbox for quick (de)selection of all features
+    select_all = column_exp.checkbox(
+        "Select all columns", value=True, 
+        on_change=update_column_select, 
+        key="select_all_vis"
+        )
+    
+    # Input for selecting which columns to use for the dimensionality reduction
+    selected_columns = column_exp.multiselect(
+        "Select columns for dimensionality reduction", 
+        st.session_state.customer_row.columns.to_list(), 
+        st.session_state.customer_row.columns.to_list(),
+        key="column_select",
+        on_change=update_select_all_vis
+        )
+    
     # Create a selectbox to choose the method for dimensionality reduction
     method = st.selectbox("Method", ["PCA", "tSNE", "MDS", "UMAP"], on_change=reset_dim_plot)
+    
+    col1, col2 = st.columns(2)
+    
+    # Create the settings for the dimensionality reduction
+    dgrid_exp = col1.expander("DGrid Settings", expanded=True)
+                
+    glyph_width = dgrid_exp.slider(
+        label="Glyph Width", min_value=0.1, 
+        max_value=st.session_state.config["VISUALIZATION"]["DGRID"]["MAX_GLYPH_WIDTH"], 
+        value = 0.2)
+    glyph_height = dgrid_exp.slider(
+        label="Glyph Height", min_value=0.1,
+        max_value=st.session_state.config["VISUALIZATION"]["DGRID"]["MAX_GLYPH_HEIGHT"],
+        value = 0.2)
+    delta = dgrid_exp.slider(
+        label="Delta", min_value=0.1, 
+        max_value=st.session_state.config["VISUALIZATION"]["DGRID"]["MAX_DELTA"], 
+        value = 50.0)
+    
+    # Create the settings for the dimensionality reduction
+    method_exp = col2.expander(f"{method} Settings", expanded=True)
+    n_components = method_exp.slider("Number of Components", 2, 10, 2)
     
     # PCA method
     if method == "PCA":
         params = {
-            "n_components": 2,
+            "n_components": n_components,
             "random_state": 42
             }
         
     # tSNE method        
     elif method == "tSNE":
-        perplexity = st.slider("Perplexity", 5, 100, 30)
-        n_iter = st.slider("Number of Iterations", 250, 1000, 250)
+        perplexity = method_exp.slider("Perplexity", 5, 100, 30)
+        n_iter = method_exp.slider("Number of Iterations", 250, 1000, 250)
         params = {
-            "n_components": 2, 
+            "n_components": n_components, 
             "random_state": 42,
             "perplexity": perplexity, 
             "n_jobs": -1,
@@ -357,37 +417,43 @@ with tab2:
         # MDS method
     elif method == "MDS":
         params = {
-            "n_components": 2,
+            "n_components": n_components,
             "random_state": 42
             }
         
     elif method == "UMAP":
-        n_neighbors = st.slider("Number of Neighbors", 2, 100, 15)
-        min_dist = st.slider("Minimum Distance", 0.01, 0.99, 0.1)
-        n_components = st.slider("Number of Components", 2, 10, 2)
+        n_neighbors = method_exp.slider("Number of Neighbors", 2, 100, 15)
+        min_dist = method_exp.slider("Minimum Distance", 0.01, 0.99, 0.1)
         params = {
             "n_neighbors": n_neighbors,
             "min_dist": min_dist,
             "n_components": n_components
             }
-                
-    # Create a placeholder for the button to apply the dimensionality reduction (just for ui styling)
-    start_btn = st.empty()
+    
+    if n_components > len(selected_columns):
+        st.error("The number of components cannot be higher than the number of selected columns.")
+        st.stop()   
+    
     
     # React to the button press and perform the dimensionality reduction
-    if start_btn.button("Apply"):    
+    if st.button("Apply"):    
         if st.session_state.counterfactuals is None:
             cf_df = None
         else:
             cf_df = st.session_state.counterfactuals.drop("RiskPerformance", axis=1)
         
-        with st.spinner(f"Performing dimensionality reduction with {method}"):
-            st.session_state.dim_plot, st.session_state.dim_plot_data = st.session_state.visualizer.dim_reduction(
-                method=method, 
-                params=params, 
-                customer_row=st.session_state.customer_row,
-                counterfactuals=cf_df
-                )
+
+        # with st.spinner(f"Performing dimensionality reduction with {method}"):
+        st.session_state.dim_plot, st.session_state.dim_plot_data = st.session_state.visualizer.dim_reduction(
+            column_subset=selected_columns,
+            method=method, 
+            params=params, 
+            customer_row=st.session_state.customer_row,
+            counterfactuals=cf_df,
+            glyph_width=glyph_width,
+            glyph_height=glyph_height,
+            delta=delta
+            )
            
     if st.session_state.dim_plot is None:
         st.info("Please click the **Apply** button to perform the dimensionality reduction.")
@@ -402,4 +468,8 @@ with tab2:
         else:
             with st.spinner("Loading data..."):
                 selected_data = st.session_state.dim_plot_data[st.session_state.dim_plot_data.index.isin(selected_ids)]
+                
+                # Reorder the columns to match the customer data but keep index
+                selected_data = selected_data[st.session_state.customer_row.columns.to_list() + ["Label"]]
+                
                 st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=selected_data) 
