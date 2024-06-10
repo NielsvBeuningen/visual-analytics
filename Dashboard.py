@@ -259,7 +259,19 @@ with tab1:
             customer_features = st.session_state.customer_row.to_numpy()
             
             # Perform the prediction
-            st.session_state.customer_prediction = st.session_state.classifier.predict(customer_features)
+            prediction = st.session_state.classifier.predict(customer_features)
+            
+            if prediction["Prediction"] == "Good":
+                st.session_state.customer_prediction = {
+                    "Prediction": "Accepted",
+                    "Prediction Probability": prediction["Prediction Probability"]
+                }
+            else:
+                st.session_state.customer_prediction = {
+                    "Prediction": "Denied",
+                    "Prediction Probability": prediction["Prediction Probability"]
+                }
+            
             st.session_state.output_customer_row = st.session_state.customer_row.copy()
             st.session_state.counterfactuals = None
             st.rerun()
@@ -270,12 +282,12 @@ with tab1:
     else:
 
         # Display the prediction result and the probability, update the export row based on the prediction
-        if st.session_state.customer_prediction["Prediction"] == "Good":
-            st.session_state.output_customer_row["RiskPerformance"] = "Good"
+        if st.session_state.customer_prediction["Prediction"] == "Accepted":
+            st.session_state.output_customer_row["LoanApplicance"] = "Accepted"
             st.success("Loan accepted :smile:")
             st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][1], 2)}")
         else:
-            st.session_state.output_customer_row["RiskPerformance"] = "Bad"
+            st.session_state.output_customer_row["LoanApplicance"] = "Denied"
             st.error("Load denied :pensive:")
             st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
             
@@ -322,7 +334,7 @@ with tab1:
                             features_vary=features_vary,
                             customer_data=st.session_state.customer_row,
                             n_cfs=n_cfs)
-                        st.session_state.counterfactuals = counterfactuals[list(st.session_state.customer_row.columns) + ["RiskPerformance"]]
+                        st.session_state.counterfactuals = counterfactuals[list(st.session_state.customer_row.columns) + ["LoanApplicance"]]
                         st.rerun()
                 
             # Check if the counterfactuals have been generated and display them if they are available
@@ -337,7 +349,7 @@ with tab1:
                     st.write("Configurations that would receive a loan approval together with the difference from the customer data:")
 
                     # Display the counterfactual result as a dataframe
-                    cf_df = st.session_state.counterfactuals.drop("RiskPerformance", axis=1)
+                    cf_df = st.session_state.counterfactuals.drop("LoanApplicance", axis=1)
                     
                     st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=cf_df) 
                     
@@ -440,7 +452,7 @@ with tab2:
         if st.session_state.counterfactuals is None:
             cf_df = None
         else:
-            cf_df = st.session_state.counterfactuals.drop("RiskPerformance", axis=1)
+            cf_df = st.session_state.counterfactuals.drop("LoanApplicance", axis=1)
         
 
         # with st.spinner(f"Performing dimensionality reduction with {method}"):

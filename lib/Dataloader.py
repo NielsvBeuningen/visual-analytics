@@ -12,7 +12,11 @@ class Dataloader:
         labelDimension = "RiskPerformance"
         self.feature_names = feature_names.drop(labelDimension)
         
-        self.labels = np.array(features[labelDimension])
+        labels = np.array(features[labelDimension])
+        
+        # Replace Good with Accepted and Bad with Denied
+        labels = np.where(labels == "Good", "Accepted", "Denied")
+        self.labels = labels
 
         # Remove the labels from the features
         self.original_features = features

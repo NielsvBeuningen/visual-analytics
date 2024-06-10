@@ -7,6 +7,9 @@ import pandas as pd
 # Counterfactuals
 import dice_ml
 
+# Shap
+import shap
+
 class Classifier:
     def __init__(self, file_path: str, data: pd.DataFrame) -> None:
         """
@@ -72,5 +75,22 @@ class Classifier:
         # Add id column with "counterfactual_i" as index
         result.index = [f"alternative_{i}" for i in range(1, n_cfs+1)]
         
+        # Replace Good with Accepted and Bad with Rejected
+        result["LoanApplicance"] = np.where(result["RiskPerformance"] == "Good", "Accepted", "Rejected")
+        
+        result = result.drop(columns=["RiskPerformance"])
         
         return result
+    
+    def get_shap_values(self, data: np.ndarray):
+        """
+        Function to get the SHAP values for the data
+        """
+        
+        explainer = shap.TreeExplainer(self.model)
+        explanation = explainer(data)
+
+        shap_values = explanation.values
+        
+        return shap_values
+    
