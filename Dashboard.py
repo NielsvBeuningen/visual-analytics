@@ -249,47 +249,67 @@ st.markdown(
 tab1, tab2 = st.tabs(["Prediction", "Landscape"])
 
 with tab1:
+    col1, col2 = st.columns(2)
     # This tab is used for assessing the customer data and generating counterfactuals if the loan is denied
-    st.subheader("AI Assessment")
-    st.write("Click the button below to predict the loan acceptance for the current customer data.")
+    col1.subheader("AI Assessment")
+    col1.write("Click the button below to predict the loan acceptance for the current customer data.")
     
     # Create a button to predict the loan acceptance
-    if st.button("Predict"):
+    if col1.button("Predict"):
         with st.spinner("Predicting label"):
             customer_features = st.session_state.customer_row.to_numpy()
             
             # Perform the prediction
             prediction = st.session_state.classifier.predict(customer_features)
             
+            shap_values = st.session_state.classifier.get_shap_values(customer_features)
+            
             if prediction["Prediction"] == "Good":
                 st.session_state.customer_prediction = {
                     "Prediction": "Accepted",
-                    "Prediction Probability": prediction["Prediction Probability"]
+                    "Prediction Probability": prediction["Prediction Probability"],
+                    "SHAP Values": shap_values[0][:, 1].reshape(1, -1)
                 }
             else:
                 st.session_state.customer_prediction = {
                     "Prediction": "Denied",
-                    "Prediction Probability": prediction["Prediction Probability"]
+                    "Prediction Probability": prediction["Prediction Probability"],
+                    "SHAP Values": shap_values[0][:, 0].reshape(1, -1)
                 }
-            
+                            
             st.session_state.output_customer_row = st.session_state.customer_row.copy()
             st.session_state.counterfactuals = None
             st.rerun()
-            
+    
     # Check if the prediction has been performed
     if st.session_state.customer_prediction is None:
         st.warning("The current customer data has not been assessed yet. Please click the 'Predict' button to get a prediction.")
-    else:
-
+    else:        
         # Display the prediction result and the probability, update the export row based on the prediction
         if st.session_state.customer_prediction["Prediction"] == "Accepted":
             st.session_state.output_customer_row["LoanApplicance"] = "Accepted"
-            st.success("Loan accepted :smile:")
-            st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][1], 2)}")
+            col1.success("Loan accepted :smile:")
+            col1.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][1], 2)}")
+            
+            col2.subheader("SHAP Analysis")
+            fig = st.session_state.visualizer.shap_visualization(
+                shap_values=st.session_state.customer_prediction["SHAP Values"], 
+                feature_names=st.session_state.customer_row.columns
+            )
+            # Display the plot in the dashboard
+            col2.plotly_chart(fig)
         else:
             st.session_state.output_customer_row["LoanApplicance"] = "Denied"
-            st.error("Load denied :pensive:")
-            st.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
+            col1.error("Load denied :pensive:")
+            col1.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
+            
+            col2.subheader("SHAP Analysis")
+            fig = st.session_state.visualizer.shap_visualization(
+                shap_values=st.session_state.customer_prediction["SHAP Values"], 
+                feature_names=st.session_state.customer_row.columns
+            )
+            # Display the plot in the dashboard
+            col2.plotly_chart(fig)
             
             # If the loan is denied, show configuration for generating counterfactuals
             st.divider()
@@ -348,10 +368,17 @@ with tab1:
                 else:
                     st.write("Configurations that would receive a loan approval together with the difference from the customer data:")
 
+                    method = st.radio("Select the method to display the counterfactuals", ["Visualization", "Table"])
+                    
                     # Display the counterfactual result as a dataframe
                     cf_df = st.session_state.counterfactuals.drop("LoanApplicance", axis=1)
                     
-                    st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=cf_df) 
+                    if method == "Visualization":
+                        row = st.selectbox("Select a counterfactual", cf_df.index)
+                        with st.spinner("Updating Figure..."):
+                            st.session_state.visualizer.difference_visualization(customer_row=st.session_state.customer_row, cf_df=cf_df, index = row)
+                    else:
+                        st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=cf_df) 
                     
                     st.info("You can inspect the counterfactuals in the **Landscape** tab, or export the data via the **Export Data** section in the sidebar.")
         
@@ -383,7 +410,7 @@ with tab2:
         )
     
     # Create a selectbox to choose the method for dimensionality reduction
-    method = st.selectbox("Method", ["PCA", "tSNE", "MDS", "UMAP"], on_change=reset_dim_plot)
+    method = st.selectbox("Method", ["UMAP", "tSNE"], on_change=reset_dim_plot)
     
     col1, col2 = st.columns(2)
     
@@ -406,16 +433,9 @@ with tab2:
     # Create the settings for the dimensionality reduction
     method_exp = col2.expander(f"{method} Settings", expanded=True)
     n_components = method_exp.slider("Number of Components", 2, 10, 2)
-    
-    # PCA method
-    if method == "PCA":
-        params = {
-            "n_components": n_components,
-            "random_state": 42
-            }
         
     # tSNE method        
-    elif method == "tSNE":
+    if method == "tSNE":
         perplexity = method_exp.slider("Perplexity", 5, 100, 30)
         n_iter = method_exp.slider("Number of Iterations", 250, 1000, 250)
         params = {
@@ -424,13 +444,6 @@ with tab2:
             "perplexity": perplexity, 
             "n_jobs": -1,
             "n_iter": n_iter
-            }
-        
-        # MDS method
-    elif method == "MDS":
-        params = {
-            "n_components": n_components,
-            "random_state": 42
             }
         
     elif method == "UMAP":

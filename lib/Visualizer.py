@@ -1,6 +1,7 @@
 import streamlit as st
 
 import plotly.express as px
+import plotly.graph_objects as go
 
 import pandas as pd
 import numpy as np
@@ -88,6 +89,114 @@ class Visualizer:
         
         # Display the differences in the dashboard
         self.display_differences(differences)
+      
+    def difference_visualization(self, customer_row: pd.DataFrame, cf_df: pd.DataFrame, index: int) -> None:
+        # Create line plot to show the difference between the customer row and the counterfactuals
+        
+        cf_filtered = cf_df.loc[[index]]
+        
+        # Compute differences with the base table
+        differences_all = cf_df.subtract(customer_row.iloc[0])
+        differences_single = cf_filtered.subtract(customer_row.iloc[0])
+
+        # Create plotly figure
+        fig = go.Figure()
+
+        # Add the base line at y=0
+        fig.add_trace(go.Scatter(
+            x=customer_row.columns,
+            y=[0]*len(customer_row.columns),
+            mode='markers',
+            name='Base'
+        ))
+
+        # First add the differences for all counterfactuals, transparency is set to 0.1
+        def add_traces(fig, differences, opacity=0.1):
+            # Add traces for each alternative
+            for idx in differences.index:
+                # Alter color based on positive or negative difference
+                
+                # Add instance trace to the plot
+                fig.add_trace(go.Scatter(
+                    x=differences.columns,
+                    y=differences.loc[idx],
+                    mode='markers',
+                    name=idx,
+                    opacity=opacity
+                ))
+                
+                # For feature in differences.columns, add a vertical line to show the difference
+                for i, feature in enumerate(differences.columns):
+                    if differences.loc[idx, feature] > 0:
+                        color = 'green'
+                    elif differences.loc[idx, feature] < 0:
+                        color = 'red'
+                    else:
+                        color = 'grey'
+                        
+                    fig.add_shape(
+                        type='line',
+                        x0=feature,
+                        y0=0,
+                        x1=feature,
+                        y1=differences.loc[idx, feature],
+                        line=dict(
+                            color=color,
+                            width=2
+                        ),
+                        opacity=opacity
+                    )
+                    
+                    # Draw circles over points to color them
+                    fig.add_trace(go.Scatter(
+                        x=[feature],
+                        y=[differences.loc[idx, feature]],
+                        mode='markers',
+                        marker=dict(size=10, color=color),
+                        opacity=opacity
+                    ))
+                    
+            return fig
+            
+        fig = add_traces(fig, differences_all, opacity=0.1)
+        fig = add_traces(fig, differences_single, opacity=1)
+
+        # Update layout
+        fig.update_layout(
+            title='Differences from Customer Data',
+            xaxis_title='Feature',
+            yaxis_title='Difference',
+            yaxis=dict(zeroline=True, zerolinewidth=2, zerolinecolor='black'),
+            template='plotly_white',
+            showlegend=False
+        )
+        
+        # Display the plot in the dashboard
+        st.plotly_chart(fig)
+        
+    def shap_visualization(self, shap_values: np.ndarray, feature_names: list) -> None:
+        """
+        Function to visualize the SHAP values
+        @param shap_values: the SHAP values to visualize
+        @param feature_names: the names of the features
+        @return: None
+        """
+        # Create a dataframe with the SHAP values
+        shap_df = pd.DataFrame(shap_values, columns=feature_names)
+        
+        # Create a bar plot with the mean SHAP values
+        shap_mean = shap_df.mean().sort_values(ascending=False)
+        fig = px.bar(
+            x=shap_mean.values, 
+            y=shap_mean.index, 
+            orientation='h',
+            labels={'x': 'Feature Importance', 'y': 'Feature'}
+            )
+        
+        # Color negative values red and positive values green
+        fig.update_traces(marker_color=['red' if x < 0 else 'green' for x in shap_mean.values])        
+        
+        return fig
         
     def dim_reduction(
         self, column_subset: list,
@@ -136,12 +245,8 @@ class Visualizer:
         
         
         # Logic to perform the dimensionality reduction method specified
-        if method == 'PCA':
-            reduced_data = PCA(**params).fit_transform(data_scaled)
-        elif method == 'tSNE':
+        if method == 'tSNE':
             reduced_data = TSNE(**params).fit_transform(data_scaled)
-        elif method == 'MDS':
-            reduced_data = MDS(**params).fit_transform(data_scaled)  
         elif method == "UMAP":
             reduced_data = umap.UMAP(**params).fit(data_scaled).transform(data_scaled)
         else:
