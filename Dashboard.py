@@ -163,10 +163,14 @@ with exp:
     # Create a selectbox to choose the feature to update
     feature = st.selectbox("Feature", list(st.session_state.config["INPUT_VALUES"].keys()), key="feature_select")
     
+    if f'numeric_{feature}' not in st.session_state:
+        st.session_state[f'numeric_{feature}'] = st.session_state.customer_data[feature]
+    if f'slider_{feature}' not in st.session_state:
+        st.session_state[f'slider_{feature}'] = st.session_state.customer_data[feature]
+    
     # Create a numeric input and a slider for the selected feature
-    val = st.number_input('Numeric', value = st.session_state.customer_data[feature], key = f'numeric_{feature}', on_change = update_slider)
+    val = st.number_input('Numeric', key = f'numeric_{feature}', on_change = update_slider)
     slider_value = st.slider('Slider', min_value = st.session_state.config["INPUT_VALUES"][feature]["MIN"], 
-                            value = val, 
                             max_value = st.session_state.config["INPUT_VALUES"][feature]["MAX"],
                             step = 1,
                             key = f'slider_{feature}', on_change= update_numin)
@@ -219,10 +223,25 @@ header = st.container()
 # Show the customer data
 header.header("Customer Information")
  
+col1, col2, col3, col4 = header.columns(4)
+ 
 # Show the customer data as a dataframe
 st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
 
-header.dataframe(st.session_state.customer_row, hide_index=True) 
+col1_df = st.session_state.customer_row[st.session_state.customer_row.columns[:4]].transpose()
+col1_df.columns = ["Value"]
+col1.dataframe(col1_df)
+col2_df = st.session_state.customer_row[st.session_state.customer_row.columns[4:8]].transpose()
+col2_df.columns = ["Value"]
+col2.dataframe(col2_df)
+col3_df = st.session_state.customer_row[st.session_state.customer_row.columns[8:12]].transpose()
+col3_df.columns = ["Value"]
+col3.dataframe(col3_df)
+col4_df = st.session_state.customer_row[st.session_state.customer_row.columns[12:]].transpose()
+col4_df.columns = ["Value"]
+col4.dataframe(col4_df)
+
+# header.dataframe(st.session_state.customer_row, hide_index=True) 
 header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
 
 ### Custom CSS for the sticky header

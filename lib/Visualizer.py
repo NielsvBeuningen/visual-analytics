@@ -238,7 +238,7 @@ class Visualizer:
         scaler = StandardScaler()
         data_scaled = scaler.fit_transform(filtered_data)
         
-        for percent_complete in range(10):
+        for percent_complete in range(5):
             time.sleep(0.01)
             my_bar.progress(percent_complete + 6, text="Performing dimensionality reduction")
         
