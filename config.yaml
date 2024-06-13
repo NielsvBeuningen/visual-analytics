@@ -15,7 +15,7 @@ VISUALIZATION:
     MAX_DELTA: 200.0
 
 DATA_FILE: data/heloc_dataset_v4.csv
-MODEL_FILE: models/MainModel_v2.pkl
+MODEL_FILE: models/MainModel_v4.pkl
 
 INPUT_VALUES:
   ExternalRiskEstimate:
@@ -66,18 +66,18 @@ INPUT_VALUES:
   #   MIN: 0
   #   MAX: 1000
   #   DEFAULT: 10
-  MaxDelq/PublicRecLast12M:
-    NAME: MaxDelq/PublicRecLast12M
-    TYPE: INTEGER
-    MIN: 0
-    MAX: 9
-    DEFAULT: 6
-  MaxDelqEver:
-    NAME: MaxDelqEver
-    TYPE: INTEGER
-    MIN: 0
-    MAX: 8
-    DEFAULT: 6
+  # MaxDelq/PublicRecLast12M:
+  #   NAME: MaxDelq/PublicRecLast12M
+  #   TYPE: INTEGER
+  #   MIN: 0
+  #   MAX: 9
+  #   DEFAULT: 6
+  # MaxDelqEver:
+  #   NAME: MaxDelqEver
+  #   TYPE: INTEGER
+  #   MIN: 0
+  #   MAX: 8
+  #   DEFAULT: 6
   NumTotalTrades:
     NAME: NumTotalTrades
     TYPE: INTEGER

@@ -230,7 +230,7 @@ st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, ind
 toggle_display = st.sidebar.selectbox("Customer Data View Orientation", ["Rows", "Columns"])
 
 if toggle_display == "Columns":
-    nr_columns = st.sidebar.slider("Number of columns", 1, 5, 5)
+    nr_columns = st.sidebar.slider("Number of columns", 1, 4, 4)
     columns = header.columns(nr_columns)
     column_dfs = []
     for i, col in enumerate(columns):
