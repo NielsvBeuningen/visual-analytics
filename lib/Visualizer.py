@@ -297,14 +297,17 @@ class Visualizer:
         # Add index to the reduced data linking back to original data, customer row and counterfactuals
         index_column = np.array([f"reference_{i}" for i in range(self.data.shape[0])] + ['customer'])
         
+        # If counterfactuals is not None, add the counterfactuals to the index
         if counterfactuals is not None:
             index_column = np.append(index_column, [f"alternative_{i}" for i in range(counterfactuals.shape[0])])
             
+        # Use DGrid to transform the data for visualization
         dgrid = DGrid(glyph_width=glyph_width, glyph_height=glyph_height, delta=delta)  # Adjust glyph size and delta as necessary
         reduced_data = dgrid.fit_transform(reduced_data)
             
         my_bar.progress(90, text="Creating visualization")
-            
+        
+        # Create symbols array    
         reduced_data = np.column_stack((reduced_data, index_column))
         data.index = index_column
         labeled_data = data.copy()

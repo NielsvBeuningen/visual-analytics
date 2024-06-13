@@ -381,13 +381,16 @@ with tab1:
                     if st.session_state.config["SHOW_LOGS"]: 
                         st.write(st.session_state.counterfactuals[1])
                 else:
+                    # Display the counterfactuals in the dashboard
                     st.write("Configurations that would receive a loan approval together with the difference from the customer data:")
 
+                    # Create a radio button to select the method for displaying the counterfactuals
                     method = st.radio("Select the method to display the counterfactuals", ["Visualization", "Table"])
                     
                     # Display the counterfactual result as a dataframe
                     cf_df = st.session_state.counterfactuals.drop("LoanApplicance", axis=1)
                     
+                    # Display the counterfactuals in a table or as a visualization based on the selected method
                     if method == "Visualization":
                         row = st.selectbox("Select a counterfactual", cf_df.index)
                         with st.spinner("Updating Figure..."):
@@ -432,6 +435,7 @@ with tab2:
     # Create the settings for the dimensionality reduction
     dgrid_exp = col1.expander("DGrid Settings", expanded=True)
                 
+    # Make the sliders for the DGrid settings
     glyph_width = dgrid_exp.slider(
         label="Glyph Width", min_value=0.1, 
         max_value=st.session_state.config["VISUALIZATION"]["DGRID"]["MAX_GLYPH_WIDTH"], 
@@ -460,7 +464,7 @@ with tab2:
             "n_jobs": -1,
             "n_iter": n_iter
             }
-        
+    # UMAP method
     elif method == "UMAP":
         n_neighbors = method_exp.slider("Number of Neighbors", 2, 100, 15)
         min_dist = method_exp.slider("Minimum Distance", 0.01, 0.99, 0.1)
@@ -470,6 +474,7 @@ with tab2:
             "n_components": n_components
             }
     
+    # Check if the number of components is higher than the number of selected columns, if so, stop the app
     if n_components > len(selected_columns):
         st.error("The number of components cannot be higher than the number of selected columns.")
         st.stop()   
@@ -495,21 +500,25 @@ with tab2:
             delta=delta
             )
            
+    # Check if the dimensionality reduction has been performed and display the scatter plot
     if st.session_state.dim_plot is None:
         st.info("Please click the **Apply** button to perform the dimensionality reduction.")
     else:
         # Display the scatter plot in the streamlit app
         event = st.plotly_chart(st.session_state.dim_plot, key="dim_red_plot", use_container_width=True, on_select="rerun")
         
+        # Check if points have been selected in the plot, if so, display the selected data
         selected_points = event.selection["points"]
         selected_ids = [point["hovertext"] for point in selected_points]
         if len(selected_ids) == 0:
             st.info("**Select** points in the plot to compare with the **customer data**.")
         else:
             with st.spinner("Loading data..."):
+                # Get the selected data based on the selected ids
                 selected_data = st.session_state.dim_plot_data[st.session_state.dim_plot_data.index.isin(selected_ids)]
                 
                 # Reorder the columns to match the customer data but keep index
                 selected_data = selected_data[st.session_state.customer_row.columns.to_list() + ["Label"]]
                 
+                # Display the selected data in a table for comparison
                 st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=selected_data) 
