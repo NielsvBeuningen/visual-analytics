@@ -8,8 +8,6 @@ import numpy as np
 
 import time
 
-from sklearn.decomposition import PCA
-from sklearn.manifold import TSNE, MDS
 from sklearn.preprocessing import StandardScaler
 import umap
 
@@ -226,6 +224,8 @@ class Visualizer:
         
         # Create a bar plot with the mean SHAP values
         shap_mean = shap_df.mean().sort_values(ascending=False)
+        
+        # Create the base for the plot
         fig = px.bar(
             x=shap_mean.values, 
             y=shap_mean.index, 
@@ -282,8 +282,6 @@ class Visualizer:
             time.sleep(0.01)
             my_bar.progress(percent_complete + 6, text="Performing dimensionality reduction")
         
-        
-        
         # Logic to perform the dimensionality reduction method specified
         if method == 'tSNE':
             reduced_data = TSNE(**params).fit_transform(data_scaled)
@@ -318,6 +316,7 @@ class Visualizer:
         symbols[labels == 'Customer'] = 'star'
         symbols[labels == 'Alternative'] = 'square'
         
+        # Some constants for the plot visualization
         BASE_SIZE = 0.5
         CUSTOMER = 5
         COUNTERFACTUAL = 5

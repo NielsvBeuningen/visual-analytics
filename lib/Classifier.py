@@ -1,4 +1,4 @@
-# Use numpy to convert to arrays
+# Import the required libraries
 import numpy as np
 import pickle
 import streamlit as st
@@ -36,9 +36,11 @@ class Classifier:
         @return: the prediction and the prediction probability.
         """
         
+        # Get the prediction and the prediction probability from the model
         prediction = self.model.predict(data)[0]
         prediction_proba = self.model.predict_proba(data)[0]
         
+        # Return the prediction and the prediction probability in a dictionary
         result = {
             "Prediction": prediction,
             "Prediction Probability": prediction_proba
