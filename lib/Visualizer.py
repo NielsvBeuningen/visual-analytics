@@ -31,7 +31,13 @@ class Visualizer:
         self.data = original_data
         self.labels = original_labels
       
-    def color_diff(self, cell_content):
+    def color_diff(self, cell_content: str) -> str:
+        """
+        Function to color the differences in the dataframe
+        @param cell_content: the content of the cell
+        @return: the color of the cell
+        """
+        # Check if the cell content is a string and contains brackets (indicating a difference)
         if '(' not in cell_content:
             return f'color: black'
         else:
@@ -48,12 +54,29 @@ class Visualizer:
                 
             return f'color: {color}'
 
-    def display_differences(self, df):
+    def display_differences(self, df: pd.DataFrame) -> None:
+        """
+        Function to display the differences in a dataframe with color coding
+        @param df: the dataframe with the differences
+        @return: None
+        """
+        # Apply the color_diff function to the dataframe for color coding in the dashboard
         styled_df = df.style.applymap(self.color_diff)
+        
+        # Display the dataframe in the dashboard
         st.dataframe(styled_df)
         
     def counterfactual_visualization(self, customer_row: pd.DataFrame, cf_df: pd.DataFrame) -> None:
+        """
+        Function to visualize the differences between the customer row and the counterfactuals in a dataframe.
+        @param customer_row: the data of the customer
+        @param cf_df: the counterfactuals
+        @return: None
+        """
+        
+        # Make a copy of the counterfactuals dataframe
         counterfactuals = cf_df.copy()
+        
         # If "label" column is present, remove it
         if "Label" in cf_df.columns:
             counterfactuals = counterfactuals.drop(columns=["Label"])
@@ -82,27 +105,34 @@ class Visualizer:
             
             if "Label" in cf_df.columns:
                 # Add as column or index the label
-                # diff_row.insert(0, "Label", cf_df.loc[index, "Label"])
                 diff_row.index = [f"{index} ({cf_df.loc[index, 'Label']})"]
             
             differences = differences._append(diff_row)
         
-        # Display the differences in the dashboard
+        # Display the differences in the dashboard with color coding
         self.display_differences(differences)
       
     def difference_visualization(self, customer_row: pd.DataFrame, cf_df: pd.DataFrame, index: int) -> None:
-        # Create line plot to show the difference between the customer row and the counterfactuals
-        
+        """
+        Function to visualize the difference between the customer row and the counterfactuals in a line plot.
+        The counterfactuals are shown as transparent lines, the customer row is shown as a solid line.
+        One counterfactual is highlighted in a solid line. The differences are shown as vertical lines.
+        @param customer_row: the data of the customer
+        @param cf_df: the counterfactuals
+        @param index: the index of the counterfactual to highlight
+        @return: None
+        """
+        # Get the data for the counterfactual to highlight        
         cf_filtered = cf_df.loc[[index]]
         
-        # Compute differences with the base table
+        # Compute differences with the base table for all counterfactuals and the single counterfactual
         differences_all = cf_df.subtract(customer_row.iloc[0])
         differences_single = cf_filtered.subtract(customer_row.iloc[0])
 
         # Create plotly figure
         fig = go.Figure()
 
-        # Add the base line at y=0
+        # Add the customer row as a solid line
         fig.add_trace(go.Scatter(
             x=customer_row.columns,
             y=[0]*len(customer_row.columns),
@@ -110,12 +140,17 @@ class Visualizer:
             name='Base'
         ))
 
-        # First add the differences for all counterfactuals, transparency is set to 0.1
-        def add_traces(fig, differences, opacity=0.1):
+        # Create a function to add traces to the plot
+        def add_traces(fig: go.Figure, differences: pd.DataFrame, opacity: float) -> go.Figure:
+            """
+            Function for adding traces to the plot.
+            @param fig: the figure to add the traces to
+            @param differences: the differences to add to the plot
+            @param opacity: the opacity of the traces
+            @return: the figure with the traces added
+            """
             # Add traces for each alternative
-            for idx in differences.index:
-                # Alter color based on positive or negative difference
-                
+            for idx in differences.index:                
                 # Add instance trace to the plot
                 fig.add_trace(go.Scatter(
                     x=differences.columns,
@@ -126,7 +161,8 @@ class Visualizer:
                 ))
                 
                 # For feature in differences.columns, add a vertical line to show the difference
-                for i, feature in enumerate(differences.columns):
+                for feature in differences.columns:
+                    # Color the line based on the difference
                     if differences.loc[idx, feature] > 0:
                         color = 'green'
                     elif differences.loc[idx, feature] < 0:
@@ -134,6 +170,7 @@ class Visualizer:
                     else:
                         color = 'grey'
                         
+                    # Add the vertical line to the plot
                     fig.add_shape(
                         type='line',
                         x0=feature,
@@ -157,8 +194,11 @@ class Visualizer:
                     ))
                     
             return fig
-            
+           
+        # First add the differences for all counterfactuals, transparency is set to 0.1  
         fig = add_traces(fig, differences_all, opacity=0.1)
+        
+        # Then add the differences for the single counterfactual, transparency is set to 1
         fig = add_traces(fig, differences_single, opacity=1)
 
         # Update layout

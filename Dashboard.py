@@ -226,17 +226,17 @@ header.header("Customer Information")
 # Show the customer data as a dataframe
 st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
 
+# Create a toggle to switch between row and column view
 toggle_display = st.sidebar.selectbox("Customer Data View Orientation", ["Rows", "Columns"])
 
 if toggle_display == "Columns":
     nr_columns = st.sidebar.slider("Number of columns", 1, 5, 5)
-    columns = st.columns(nr_columns)
+    columns = header.columns(nr_columns)
     column_dfs = []
     for i, col in enumerate(columns):
         column_dfs.append(st.session_state.customer_row.iloc[:, i::nr_columns].transpose())
         column_dfs[i].columns = ["Value"]
         columns[i].dataframe(column_dfs[i])    
-
 else:
     header.dataframe(st.session_state.customer_row, hide_index=True) 
 
@@ -259,8 +259,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )    
-    
-
 
 # Create the tabs for the prediction and the landscape
 tab1, tab2 = st.tabs(["Prediction", "Landscape"])
