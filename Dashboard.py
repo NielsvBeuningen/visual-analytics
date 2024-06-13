@@ -517,12 +517,22 @@ with tab2:
         if len(selected_ids) == 0:
             st.info("**Select** points in the plot to compare with the **customer data**.")
         else:
-            with st.spinner("Loading data..."):
-                # Get the selected data based on the selected ids
-                selected_data = st.session_state.dim_plot_data[st.session_state.dim_plot_data.index.isin(selected_ids)]
+            method = st.selectbox("Method", ["Plot", "Table"])
+            
+            # Get the selected data based on the selected ids
+            selected_data = st.session_state.dim_plot_data[st.session_state.dim_plot_data.index.isin(selected_ids)]
+            
+            # Reorder the columns to match the customer data but keep index
+            selected_data = selected_data[st.session_state.customer_row.columns.to_list() + ["Label"]]
                 
-                # Reorder the columns to match the customer data but keep index
-                selected_data = selected_data[st.session_state.customer_row.columns.to_list() + ["Label"]]
+            if method == "Plot":
+                # Provide input for selecting the data point to highlight
+                selected_data.index = [f"{index} ({selected_data.loc[index, 'Label']})" for index in selected_data.index]
+                highlight_index = st.selectbox("Select a data point", selected_data.index)
                 
-                # Display the selected data in a table for comparison
-                st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=selected_data) 
+                with st.spinner("Loading data..."):
+                    st.session_state.visualizer.difference_visualization(customer_row=st.session_state.customer_row, cf_df=selected_data, index=highlight_index)
+            else:
+                with st.spinner("Loading data..."):
+                    # Display the selected data in a table for comparison
+                    st.session_state.visualizer.counterfactual_visualization(customer_row=st.session_state.customer_row, cf_df=selected_data) 

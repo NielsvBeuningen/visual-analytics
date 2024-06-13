@@ -132,11 +132,13 @@ class Visualizer:
         fig = go.Figure()
 
         # Add the customer row as a solid line
+        # Add index to hover over the points
         fig.add_trace(go.Scatter(
             x=customer_row.columns,
             y=[0]*len(customer_row.columns),
             mode='markers',
-            name='Base'
+            name='Base',
+            marker=dict(size=10, color='grey'),
         ))
 
         # Create a function to add traces to the plot
@@ -149,15 +151,8 @@ class Visualizer:
             @return: the figure with the traces added
             """
             # Add traces for each alternative
-            for idx in differences.index:                
-                # Add instance trace to the plot
-                fig.add_trace(go.Scatter(
-                    x=differences.columns,
-                    y=differences.loc[idx],
-                    mode='markers',
-                    name=idx,
-                    opacity=opacity
-                ))
+            for idx in differences.index:  
+                label = idx.replace('reference_', '')   
                 
                 # For feature in differences.columns, add a vertical line to show the difference
                 for feature in differences.columns:
@@ -180,6 +175,7 @@ class Visualizer:
                             color=color,
                             width=2
                         ),
+                        name=label,
                         opacity=opacity
                     )
                     
@@ -189,7 +185,8 @@ class Visualizer:
                         y=[differences.loc[idx, feature]],
                         mode='markers',
                         marker=dict(size=10, color=color),
-                        opacity=opacity
+                        opacity=opacity,
+                        name=label
                     ))
                     
             return fig
