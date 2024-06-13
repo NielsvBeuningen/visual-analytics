@@ -9,6 +9,11 @@ SHOW_LOGS: False
 MAX_CFS: 10
 
 VISUALIZATION:
+  COLORS:
+    ref_bad: "#e7298a"
+    ref_good: "#1b9e77"
+    customer: "#7570b3"
+    alternative: "#d95f02"
   DGRID:
     MAX_GLYPH_WIDTH: 10.0
     MAX_GLYPH_HEIGHT: 10.0

@@ -9,6 +9,7 @@ import numpy as np
 import time
 
 from sklearn.preprocessing import StandardScaler
+from sklearn.manifold import TSNE
 import umap
 
 from lib.DGrid import DGrid
@@ -210,7 +211,7 @@ class Visualizer:
         )
         
         # Display the plot in the dashboard
-        st.plotly_chart(fig)
+        st.plotly_chart(fig)   
         
     def shap_visualization(self, shap_values: np.ndarray, feature_names: list) -> None:
         """
@@ -237,7 +238,7 @@ class Visualizer:
         fig.update_traces(marker_color=['red' if x < 0 else 'green' for x in shap_mean.values])        
         
         return fig
-        
+            
     def dim_reduction(
         self, column_subset: list,
         customer_row: pd.DataFrame, 
@@ -331,6 +332,12 @@ class Visualizer:
             x=reduced_data[:,0], 
             y=reduced_data[:,1], 
             color=labels, 
+            color_discrete_sequence=[
+                st.session_state.config["VISUALIZATION"]["COLORS"]["ref_bad"],
+                st.session_state.config["VISUALIZATION"]["COLORS"]["ref_good"],
+                st.session_state.config["VISUALIZATION"]["COLORS"]["customer"],
+                st.session_state.config["VISUALIZATION"]["COLORS"]["alternative"]                
+            ],
             symbol=symbols,
             size=sizes,
             size_max=12,

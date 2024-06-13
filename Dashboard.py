@@ -385,13 +385,17 @@ with tab1:
                     st.write("Configurations that would receive a loan approval together with the difference from the customer data:")
 
                     # Create a radio button to select the method for displaying the counterfactuals
-                    method = st.radio("Select the method to display the counterfactuals", ["Visualization", "Table"])
+                    method = st.radio("Select the method to display the counterfactuals", ["Plot", "Table"])
                     
                     # Display the counterfactual result as a dataframe
                     cf_df = st.session_state.counterfactuals.drop("LoanApplicance", axis=1)
                     
                     # Display the counterfactuals in a table or as a visualization based on the selected method
-                    if method == "Visualization":
+                    # if method == "Parralel Coordinates":
+                    #     with st.spinner("Updating Figure..."):
+                    #         st.session_state.visualizer.parralel_coordinates(customer_row=st.session_state.customer_row, cf_df=cf_df)
+                    
+                    if method == "Plot":
                         row = st.selectbox("Select a counterfactual", cf_df.index)
                         with st.spinner("Updating Figure..."):
                             st.session_state.visualizer.difference_visualization(customer_row=st.session_state.customer_row, cf_df=cf_df, index = row)
