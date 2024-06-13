@@ -223,25 +223,25 @@ header = st.container()
 # Show the customer data
 header.header("Customer Information")
  
-col1, col2, col3, col4 = header.columns(4)
  
 # Show the customer data as a dataframe
 st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
 
-col1_df = st.session_state.customer_row[st.session_state.customer_row.columns[:4]].transpose()
-col1_df.columns = ["Value"]
-col1.dataframe(col1_df)
-col2_df = st.session_state.customer_row[st.session_state.customer_row.columns[4:8]].transpose()
-col2_df.columns = ["Value"]
-col2.dataframe(col2_df)
-col3_df = st.session_state.customer_row[st.session_state.customer_row.columns[8:12]].transpose()
-col3_df.columns = ["Value"]
-col3.dataframe(col3_df)
-col4_df = st.session_state.customer_row[st.session_state.customer_row.columns[12:]].transpose()
-col4_df.columns = ["Value"]
-col4.dataframe(col4_df)
+# col1, col2, col3, col4 = header.columns(4)
+# col1_df = st.session_state.customer_row[st.session_state.customer_row.columns[:4]].transpose()
+# col1_df.columns = ["Value"]
+# col1.dataframe(col1_df)
+# col2_df = st.session_state.customer_row[st.session_state.customer_row.columns[4:8]].transpose()
+# col2_df.columns = ["Value"]
+# col2.dataframe(col2_df)
+# col3_df = st.session_state.customer_row[st.session_state.customer_row.columns[8:12]].transpose()
+# col3_df.columns = ["Value"]
+# col3.dataframe(col3_df)
+# col4_df = st.session_state.customer_row[st.session_state.customer_row.columns[12:]].transpose()
+# col4_df.columns = ["Value"]
+# col4.dataframe(col4_df)
 
-# header.dataframe(st.session_state.customer_row, hide_index=True) 
+header.dataframe(st.session_state.customer_row, hide_index=True) 
 header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
 
 ### Custom CSS for the sticky header
