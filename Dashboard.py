@@ -158,7 +158,7 @@ def convert_df(df: pd.DataFrame) -> bytes:
     """
     return df.to_csv().encode("utf-8")
 
-st.sidebar.title("Customer Information")
+st.sidebar.title("Dashboard Options")
 
 # Generate the sliders and numeric inputs for the features based on a selectbox
 with st.sidebar.popover(":grey_question:"):
@@ -175,10 +175,12 @@ with st.sidebar.popover(":grey_question:"):
         export and enter the filename for the exported data (Only shown when a 
         prediction for the current customer has been made).\n
         3. **Customer Data View Orientation**: This section allows you to switch 
-        between the row and column view of the customer data.
+        between the row and column view of the customer data. You can also lock the
+        customer data view to the top of the page, making it easier to compare the
+        customer data with the counterfactuals and reference points.
         """
     )
-exp = st.sidebar.expander("Customer Data Updating", expanded=True)
+exp = st.sidebar.expander("**Customer Data Updating**", expanded=True)
 with exp:
     # Create a selectbox to choose the feature to update
     feature = st.selectbox("Feature", list(st.session_state.config["INPUT_VALUES"].keys()), key="feature_select")
@@ -197,7 +199,7 @@ with exp:
 
 # Create an export section to export the data if the customer data has been assessed
 if st.session_state.output_customer_row is not None:
-    data_exp = st.sidebar.expander("Export Data", expanded=True)
+    data_exp = st.sidebar.expander("**Export Data**", expanded=True)
     
     # Check if counterfactuals have been generated, if not, only allow the customer data to be exported
     if st.session_state.counterfactuals is None or "Error" in st.session_state.counterfactuals:
@@ -246,11 +248,15 @@ header.header("Customer Information")
 # Show the customer data as a dataframe
 st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, index=[0])
 
+customer_view_exp = st.sidebar.expander("**Customer Data View**", expanded=True)
+
+toggle_lock = customer_view_exp.toggle("Lock Customer View", value=True)
+
 # Create a toggle to switch between row and column view
-toggle_display = st.sidebar.selectbox("Customer Data View Orientation", ["Rows", "Columns"])
+toggle_display = customer_view_exp.selectbox("Customer Data View Orientation", ["Rows", "Columns"])
 
 if toggle_display == "Columns":
-    nr_columns = st.sidebar.slider("Number of columns", 1, 4, 4)
+    nr_columns = customer_view_exp.slider("Number of columns", 1, 4, 4)
     columns = header.columns(nr_columns)
     column_dfs = []
     for i, col in enumerate(columns):
@@ -260,25 +266,26 @@ if toggle_display == "Columns":
 else:
     header.dataframe(st.session_state.customer_row, hide_index=True) 
 
-header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
+if toggle_lock:
+    header.write("""<div class='fixed-header'/>""", unsafe_allow_html=True)
 
-### Custom CSS for the sticky header
-st.markdown(
-    """
-<style>
-    div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
-        position: sticky;
-        top: 2.875rem;
-        background-color: white;
-        z-index: 999;
-    }
-    .fixed-header {
-        border-bottom: 3px solid #E6E7E9;
-    }
-</style>
-    """,
-    unsafe_allow_html=True
-)    
+    ### Custom CSS for the sticky header
+    st.markdown(
+        """
+        <style>
+            div[data-testid="stVerticalBlock"] div:has(div.fixed-header) {
+                position: sticky;
+                top: 2.875rem;
+                background-color: white;
+                z-index: 999;
+            }
+            .fixed-header {
+                border-bottom: 3px solid #E6E7E9;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )    
 
 # Create the tabs for the prediction and the landscape
 tab1, tab2 = st.tabs(["Prediction", "Landscape"])
@@ -383,7 +390,7 @@ with tab1:
                 )
             
             # Create an expander for the counterfactual settings
-            cf_exp = st.expander("Counterfactual Settings", expanded=True)
+            cf_exp = st.expander("**Counterfactual Settings**", expanded=True)
             
             with cf_exp:            
                 # Allow the user to select the method for generating counterfactuals
@@ -475,7 +482,7 @@ with tab2:
     else:
         st.info("The landscape view shows the **customer**, **counterfactuals**, and **reference points**")
     
-    column_exp = st.expander("Column Selection", expanded=True)
+    column_exp = st.expander("**Column Selection**", expanded=True)
     column_exp.write("Select the columns to use for the dimensionality reduction")
     
     # Checkbox for quick (de)selection of all features
@@ -500,7 +507,7 @@ with tab2:
     col1, col2 = st.columns(2)
     
     # Create the settings for the dimensionality reduction
-    dgrid_exp = col1.expander("DGrid Settings", expanded=False)
+    dgrid_exp = col1.expander("**DGrid Settings**", expanded=False)
                 
     # Make the sliders for the DGrid settings
     glyph_width = dgrid_exp.slider(
@@ -517,7 +524,7 @@ with tab2:
         value = 50.0)
     
     # Create the settings for the dimensionality reduction
-    method_exp = col2.expander(f"{method} Settings", expanded=False)
+    method_exp = col2.expander(f"**{method} Settings**", expanded=False)
         
     # tSNE method        
     if method == "tSNE":
