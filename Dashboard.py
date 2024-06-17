@@ -405,11 +405,13 @@ with tab1:
                     on_change=update_features_vary, 
                     key="select_all_predict")     
                             
+                if "features_vary" not in st.session_state:
+                    st.session_state.features_vary = list(st.session_state.customer_row.columns)    
+                        
                 # Allow the user to select the features to vary for the counterfactuals generation
                 features_vary = st.multiselect(
                     label="Features to use for counterfactuals", 
                     options=st.session_state.customer_row.columns,
-                    default=list(st.session_state.customer_row.columns),
                     on_change=update_select_all_predict,
                     key="features_vary"
                     )  
