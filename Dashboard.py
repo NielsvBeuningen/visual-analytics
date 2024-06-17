@@ -361,7 +361,7 @@ with tab1:
             col2.plotly_chart(fig)
         else:
             st.session_state.output_customer_row["LoanApplicance"] = "Denied"
-            col1.error("Load denied :pensive:")
+            col1.error("Loan denied :pensive:")
             col1.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
             
             col2.subheader("SHAP Analysis")
@@ -582,7 +582,7 @@ with tab2:
         if len(selected_ids) == 0:
             st.info("**Select** points in the plot to compare with the **customer data**.")
         else:
-            method = st.selectbox("Method", ["Plot", "Table"])
+            method = st.radio("Method", ["Plot", "Table"])
             
             # Get the selected data based on the selected ids
             selected_data = st.session_state.dim_plot_data[st.session_state.dim_plot_data.index.isin(selected_ids)]
