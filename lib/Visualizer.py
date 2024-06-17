@@ -287,7 +287,7 @@ class Visualizer:
             reduced_data = umap.UMAP(**params).fit(data_scaled).transform(data_scaled)
         else:
             raise ValueError('Invalid method')
-        
+
         my_bar.progress(50, text="Transforming data for visualization with DGrid")
         
         # Add index to the reduced data linking back to original data, customer row and counterfactuals

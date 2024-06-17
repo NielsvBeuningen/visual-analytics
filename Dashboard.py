@@ -68,9 +68,9 @@ except Exception as e:
     st.stop()
 
 # Create the page layout
-st.title("Loan Aid Dashboard")
-st.sidebar.title("Customer Information")
+st.title("Loan AId Dashboard")
 
+# Create reactive functions to update the sliders and numeric inputs
 def update_slider() -> None:
     """
     Update the slider value when the numeric input is changed
@@ -93,6 +93,7 @@ def update_numin() -> None:
     st.session_state.customer_data[feature] = st.session_state[f'numeric_{feature}']
     st.session_state.dim_plot = None
     
+# Create reactive functions to update the select boxes and multiselects
 def update_features_vary() -> None:
     """
     Update the features to vary when the select all checkbox is changed
@@ -137,6 +138,7 @@ def update_select_all_vis() -> None:
     else:
         st.session_state.select_all_vis = False
 
+# Create reactive functions to reset the dimensionality reduction plot
 def reset_dim_plot() -> None:
     """
     Reset the dim plot when the method for dimensionality reduction is changed
@@ -146,6 +148,7 @@ def reset_dim_plot() -> None:
     st.session_state.dim_plot = None
     st.session_state.dim_plot_data = None
 
+# Create a function to convert a dataframe to a csv file (cached to avoid recomputation)
 @st.cache_data
 def convert_df(df: pd.DataFrame) -> bytes:
     """
@@ -155,9 +158,26 @@ def convert_df(df: pd.DataFrame) -> bytes:
     """
     return df.to_csv().encode("utf-8")
 
+st.sidebar.title("Customer Information")
 
 # Generate the sliders and numeric inputs for the features based on a selectbox
-st.sidebar.write("Select a feature to update the value")
+with st.sidebar.popover(":grey_question:"):
+    st.subheader("Loan AId Sidebar")
+    st.write(
+        """
+        This sidebar consists of three components.
+        1. **Customer Data Updating**: Here you can select a customer attribute from the
+        dropdown menu and update the value using the numeric input or the slider.
+        The features can be seen in the **Customer Information** section on the right 
+        side of the page.\n
+        2. **Export Data**: This section allows you to export the customer data and the 
+        counterfactuals generated for the customer data. You can select the data to 
+        export and enter the filename for the exported data (Only shown when a 
+        prediction for the current customer has been made).\n
+        3. **Customer Data View Orientation**: This section allows you to switch 
+        between the row and column view of the customer data.
+        """
+    )
 exp = st.sidebar.expander("Customer Data Updating", expanded=True)
 with exp:
     # Create a selectbox to choose the feature to update
@@ -264,13 +284,32 @@ st.markdown(
 tab1, tab2 = st.tabs(["Prediction", "Landscape"])
 
 with tab1:
-    col1, col2 = st.columns(2)
+    col1, _, col2 = st.columns([5, 5, 1])
     # This tab is used for assessing the customer data and generating counterfactuals if the loan is denied
-    col1.subheader("AI Assessment")
-    col1.write("Click the button below to predict the loan acceptance for the current customer data.")
+    col1.title("AI Assessment")
+    with col2.popover(":grey_question:"):
+        st.subheader("AI Assessment")
+        st.write(
+            """
+            Here you can assess the current customer data and predict the loan acceptance.
+            The prediction is done with a trained machine learning model which returns the
+            prediction and the prediction probability.\n
+            On the right side, you can see the
+            SHAP analysis for the prediction, showing the importances of all customer attributes
+            for the prediction. If the loan is denied, you can generate counterfactuals to 
+            find out what changes would be needed for the loan to be accepted.
+            """
+        )
+        
+    col1, col2 = st.columns(2)
+    
+    col1.subheader("Prediction")
+        
+    subcol1, subcol2 = col1.columns([1, 4])
+    subcol2.write("Click the button to predict the loan acceptance for the current customer data.")
     
     # Create a button to predict the loan acceptance
-    if col1.button("Predict"):
+    if subcol1.button("Predict"):
         with st.spinner("Predicting label"):
             customer_features = st.session_state.customer_row.to_numpy()
             
@@ -328,8 +367,20 @@ with tab1:
             
             # If the loan is denied, show configuration for generating counterfactuals
             st.divider()
-            st.subheader("Counterfactuals")
-            st.write("Here you can generate counterfactuals for the customer data to find out what changes would be needed for the loan to be accepted.")
+            col1, _, col2 = st.columns([5, 5, 1])
+            col1.subheader("Alternative Generation")
+            with col2.popover(":grey_question:"):
+                st.subheader("Alternative Generation")
+                st.write(
+                    """
+                    Here you can generate alternatives for the customer data to 
+                    find out what changes would be needed for the loan to be accepted.\n
+                    These suggestions are generated based on the current customer data 
+                    and the selected features to vary. Using a method from the DiCE library,
+                    you can generate a number of **counterfactuals** that could act as
+                    suggestions for the customer data to be accepted.
+                    """
+                )
             
             # Create an expander for the counterfactual settings
             cf_exp = st.expander("Counterfactual Settings", expanded=True)
@@ -339,7 +390,7 @@ with tab1:
                 dice_method = st.selectbox("DiCE Method", ["kdtree", "random", "genetic"])
                 
                 # Allow the user to select the number of counterfactuals to generate
-                n_cfs = st.slider("Number of Counterfactuals", 1, st.session_state.config["MAX_CFS"], 1)   
+                n_cfs = st.slider("Number of Alternatives", 1, st.session_state.config["MAX_CFS"], 1)   
                 
                 # Checkbox for quick (de)selection of all features
                 select_all = st.checkbox(
@@ -369,8 +420,11 @@ with tab1:
                             features_vary=features_vary,
                             customer_data=st.session_state.customer_row,
                             n_cfs=n_cfs)
-                        st.session_state.counterfactuals = counterfactuals[list(st.session_state.customer_row.columns) + ["LoanApplicance"]]
-                        st.rerun()
+                        if type(counterfactuals) == tuple:
+                            st.error("No counterfactuals could be generated for the current customer data. Please try again with different settings.")
+                        else:
+                            st.session_state.counterfactuals = counterfactuals[list(st.session_state.customer_row.columns) + ["LoanApplicance"]]
+                            st.rerun()
                 
             # Check if the counterfactuals have been generated and display them if they are available
             if st.session_state.counterfactuals is None:
@@ -390,11 +444,7 @@ with tab1:
                     # Display the counterfactual result as a dataframe
                     cf_df = st.session_state.counterfactuals.drop("LoanApplicance", axis=1)
                     
-                    # Display the counterfactuals in a table or as a visualization based on the selected method
-                    # if method == "Parralel Coordinates":
-                    #     with st.spinner("Updating Figure..."):
-                    #         st.session_state.visualizer.parralel_coordinates(customer_row=st.session_state.customer_row, cf_df=cf_df)
-                    
+                    # Display the counterfactuals in the selected method
                     if method == "Plot":
                         row = st.selectbox("Select a counterfactual", cf_df.index)
                         with st.spinner("Updating Figure..."):
@@ -406,7 +456,19 @@ with tab1:
         
         
 with tab2:
-    st.write("Use the dropdown to select the method for dimensionality reduction")
+    col1, _, col2 = st.columns([5, 5, 1])
+    col1.title("Landscape")
+    with col2.popover(":grey_question:"):
+        st.subheader("Landscape")
+        st.write(
+            """
+            In this tab, you can visualize the customer data, the counterfactuals, 
+            and the reference points in one large figure.\n
+            The scatter plot is generated using dimensionality reduction, for which you can
+            select the method and columns.\n
+            You can select points in the plot to compare these with the customer data.
+            """
+        )
     
     if st.session_state.counterfactuals is None:
         st.info("The landscape view shows the **customer** and **reference points**")
@@ -414,6 +476,7 @@ with tab2:
         st.info("The landscape view shows the **customer**, **counterfactuals**, and **reference points**")
     
     column_exp = st.expander("Column Selection", expanded=True)
+    column_exp.write("Select the columns to use for the dimensionality reduction")
     
     # Checkbox for quick (de)selection of all features
     select_all = column_exp.checkbox(
@@ -437,7 +500,7 @@ with tab2:
     col1, col2 = st.columns(2)
     
     # Create the settings for the dimensionality reduction
-    dgrid_exp = col1.expander("DGrid Settings", expanded=True)
+    dgrid_exp = col1.expander("DGrid Settings", expanded=False)
                 
     # Make the sliders for the DGrid settings
     glyph_width = dgrid_exp.slider(
@@ -454,15 +517,14 @@ with tab2:
         value = 50.0)
     
     # Create the settings for the dimensionality reduction
-    method_exp = col2.expander(f"{method} Settings", expanded=True)
-    n_components = method_exp.slider("Number of Components", 2, 10, 2)
+    method_exp = col2.expander(f"{method} Settings", expanded=False)
         
     # tSNE method        
     if method == "tSNE":
         perplexity = method_exp.slider("Perplexity", 5, 100, 30)
         n_iter = method_exp.slider("Number of Iterations", 250, 1000, 250)
         params = {
-            "n_components": n_components, 
+            "n_components": 2, 
             "random_state": 42,
             "perplexity": perplexity, 
             "n_jobs": -1,
@@ -475,14 +537,8 @@ with tab2:
         params = {
             "n_neighbors": n_neighbors,
             "min_dist": min_dist,
-            "n_components": n_components
-            }
-    
-    # Check if the number of components is higher than the number of selected columns, if so, stop the app
-    if n_components > len(selected_columns):
-        st.error("The number of components cannot be higher than the number of selected columns.")
-        st.stop()   
-    
+            "n_components": 2
+            }    
     
     # React to the button press and perform the dimensionality reduction
     if st.button("Apply"):    
