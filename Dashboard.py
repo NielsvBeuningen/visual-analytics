@@ -68,7 +68,7 @@ except Exception as e:
     st.stop()
 
 # Create the page layout
-st.title("HELOC Dashboard")
+st.title("Loan Aid Dashboard")
 st.sidebar.title("Customer Information")
 
 def update_slider() -> None:
