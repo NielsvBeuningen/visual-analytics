@@ -250,7 +250,7 @@ st.session_state.customer_row = pd.DataFrame(st.session_state.customer_data, ind
 
 customer_view_exp = st.sidebar.expander("**Customer Data View**", expanded=True)
 
-toggle_lock = customer_view_exp.toggle("Lock Customer View", value=True)
+toggle_lock = customer_view_exp.toggle("Lock View", value=True)
 
 # Create a toggle to switch between row and column view
 toggle_display = customer_view_exp.selectbox("Customer Data View Orientation", ["Rows", "Columns"])
