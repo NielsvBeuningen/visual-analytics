@@ -394,7 +394,16 @@ with tab1:
             
             with cf_exp:            
                 # Allow the user to select the method for generating counterfactuals
-                dice_method = st.selectbox("DiCE Method", ["kdtree", "random", "genetic"])
+                method_options = st.selectbox("DiCE Method", ["From dataset", "Generate new"])
+                
+                # Make small method mapping
+                method_mapping = {
+                    "From dataset": "kdtree",
+                    "Generate new": "random"
+                }
+                
+                # Get actual dice method
+                dice_method = method_mapping[method_options]
                 
                 # Allow the user to select the number of counterfactuals to generate
                 n_cfs = st.slider("Number of Alternatives", 1, st.session_state.config["MAX_CFS"], 1)   
