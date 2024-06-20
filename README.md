@@ -2,7 +2,7 @@
 ## Table of Contents
 1. [Setup Repository](#setup-repository)
 2. [Setup Streamlit App](#setup-streamlit-app)
-3. [File Descriptions](#file-descriptions)
+3. [Folder and File Descriptions](#folder-and-file-descriptions)
 
 ## Setup Repository
 ### Clone Repository
