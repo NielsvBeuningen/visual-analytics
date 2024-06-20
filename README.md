@@ -5,6 +5,8 @@
 3. [Folder and File Descriptions](#folder-and-file-descriptions)
 
 ## Setup Repository
+Based on whether you have the ZIP file or not, follow the appropriate instructions below. If you have the ZIP file, skip the first step (Clone Repository).
+
 ### Clone Repository
 First, fork the [repository](https://github.com/NielsvBeuningen/visual-analytics) to your own GitHub account. Then, clone the repository to your local machine.
 ```bash
