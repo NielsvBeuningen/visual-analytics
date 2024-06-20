@@ -191,7 +191,7 @@ with exp:
         st.session_state[f'slider_{feature}'] = st.session_state.customer_data[feature]
     
     # Create a numeric input and a slider for the selected feature
-    val = st.number_input('Numeric', key = f'numeric_{feature}', on_change = update_slider)
+    val = st.number_input('Numeric', key = f'numeric_{feature}', step=1,on_change = update_slider)
     slider_value = st.slider('Slider', min_value = st.session_state.config["INPUT_VALUES"][feature]["MIN"], 
                             max_value = st.session_state.config["INPUT_VALUES"][feature]["MAX"],
                             step = 1,
