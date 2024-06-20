@@ -11,6 +11,8 @@ git clone https://github.com/YOUR-USERNAME/visual-analytics.git
 ```
 
 ### Install Dependencies
+Install Python 3.12 or higher.
+
 Navigate to the repository and install the required dependencies. (You can also use a virtual environment if you prefer.)
 ```bash
 cd visual-analytics

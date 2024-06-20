@@ -350,7 +350,7 @@ with tab1:
         if st.session_state.customer_prediction["Prediction"] == "Accepted":
             st.session_state.output_customer_row["LoanApplicance"] = "Accepted"
             col1.success("Loan accepted :smile:")
-            col1.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][1], 2)}")
+            col1.info(f"Probability: {round(st.session_state.customer_prediction['Prediction Probability'][1], 2)}")
             
             col2.subheader("SHAP Analysis")
             fig = st.session_state.visualizer.shap_visualization(
@@ -362,7 +362,7 @@ with tab1:
         else:
             st.session_state.output_customer_row["LoanApplicance"] = "Denied"
             col1.error("Loan denied :pensive:")
-            col1.info(f"Probability: {round(st.session_state.customer_prediction["Prediction Probability"][0], 2)}")
+            col1.info(f"Probability: {round(st.session_state.customer_prediction['Prediction Probability'][0], 2)}")
             
             col2.subheader("SHAP Analysis")
             fig = st.session_state.visualizer.shap_visualization(
