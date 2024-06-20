@@ -390,11 +390,11 @@ with tab1:
                 )
             
             # Create an expander for the counterfactual settings
-            cf_exp = st.expander("**Counterfactual Settings**", expanded=True)
+            cf_exp = st.expander("**Alternatives Settings**", expanded=True)
             
             with cf_exp:            
                 # Allow the user to select the method for generating counterfactuals
-                method_options = st.selectbox("DiCE Method", ["From dataset", "Generate new"])
+                method_options = st.selectbox("New Alternative Method", ["From dataset", "Generate new"])
                 
                 # Make small method mapping
                 method_mapping = {
