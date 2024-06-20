@@ -1,5 +1,5 @@
 # Import libraries
-# BASED ON THE CODE FROM: 
+# BASED ON THE CODE FROM: https://github.com/fpaulovich/dimensionality-reduction
 import math
 import numpy as np
 import time
