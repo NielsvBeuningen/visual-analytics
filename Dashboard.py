@@ -484,6 +484,8 @@ with tab2:
             and the reference points in one large figure.\n
             The scatter plot is generated using dimensionality reduction, for which you can
             select the method and columns.\n
+            The options are tSNE and UMAP for the dimensionality reduction, and you can select
+            the columns to use for the dimensionality reduction.\n
             You can select points in the plot to compare these with the customer data.
             """
         )
